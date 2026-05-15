@@ -1,0 +1,98 @@
+# {{PROJECT_NAME}} 文档地图
+
+这份文件是渐进披露入口。开工先读它，再按当前任务状态读取必要文档；不要每次把所有文档都读一遍。
+
+## 开工必读
+
+1. `AGENTS.md`：根指令和硬规则入口。
+2. `docs/coding-progress.md`：最近会话状态、当前需求、当前计划和下一步。
+3. `docs/feature_list.json`：项目级需求索引，定位需求文档、开发文档和 active plan。
+4. `docs/exec-plans/active/`：如果存在当前计划，读取对应计划并按当前步骤续跑。
+
+## 按场景读取
+
+| 场景 | 读取 |
+| --- | --- |
+| 用户提供新需求 | `docs/requirements/parsed-requirements.md`、`docs/requirements/open-questions.md` |
+| 需要了解项目 | `docs/project/structure/overview.md` |
+| 需要了解功能模块 | `docs/project/features/overview.md` |
+| 要改代码 | `docs/project/constraints.md`、当前 active plan |
+| 涉及架构/API/状态/数据模型 | `docs/project/structure/architecture.md`、相关 design doc |
+| 涉及项目限制、安全、权限或高风险动作 | `docs/project/constraints.md` |
+| 要测试或验收 | `docs/verification.md`、`docs/process/verification.md`、`docs/reports/test-report.md` |
+| 要检查是否漏需求 | `docs/requirements/traceability.md` |
+| 前端/UI 改动 | `docs/project/frontend.md` |
+| 需要交接 | `docs/session-handoff.md` |
+
+## 文档职责
+
+- `docs/project/structure/`：项目结构、架构、模块划分和目录说明。
+- `docs/project/features/`：长期维护的功能模块、业务逻辑和使用说明。
+- `docs/project/constraints.md`：项目特定规则、限制、编码约定和风险。
+- `docs/project/frontend.md`：前端/UI 规则。
+- `docs/requirements/`：解析后的需求、疑问、假设和需求追踪矩阵。
+- `docs/design/`：结合项目现状后的开发文档，回答“准备怎么做”。
+- `docs/exec-plans/active/`：当前执行计划，记录步骤、状态、验证和证据。
+- `docs/exec-plans/completed/`：已完成计划归档。
+- `docs/reports/`：测试报告、失败修复和复测记录。
+
+## 标准命令
+
+项目验证入口见 `docs/verification.md`，完整验证策略见 `docs/process/verification.md`。
+
+```bash
+# 基础验证
+./init.sh
+
+# 严格验证
+VERIFY_MODE=analyze ./init.sh
+
+# 测试
+VERIFY_MODE=test ./init.sh
+
+# 同步依赖后再验证
+SYNC_DEPS=1 ./init.sh
+
+# 启动应用或服务
+RUN_START_COMMAND=1 ./init.sh
+
+# 本地/模拟器验收
+scripts/acceptance_simulator.sh
+```
+
+## 需求阶段
+
+- `intake`：已接收需求，等待解析。
+- `clarifying`：存在待确认问题。
+- `designing`：正在生成或确认开发文档。
+- `planned`：执行计划已生成，等待确认或开工。
+- `in_progress`：当前正在开发。
+- `verifying`：实现完成，正在按需求测试。
+- `blocked`：因已记录 blocker 无法继续。
+- `passing`：需求实现、验证和证据均已完成。
+
+同一时间只能有一个需求处于 `in_progress`，详细步骤状态写在 active plan 中。
+
+## 收尾要求
+
+结束会话前至少更新：
+
+- `docs/coding-progress.md`
+- `docs/feature_list.json`
+- 当前 `docs/exec-plans/active/*.md`
+
+如果涉及需求、验证或长会话，额外更新：
+
+- `docs/requirements/traceability.md`
+- `docs/reports/test-report.md`
+- `docs/session-handoff.md`
+
+如果提交 Git，提交信息用中文，格式示例：
+
+```text
+feat: 实现用户可见功能
+
+需求：说明用户请求或问题。
+实现：说明核心改法。
+验证：说明实际运行过的命令。
+```

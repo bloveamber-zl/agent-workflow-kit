@@ -1,0 +1,183 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT_DIR"
+
+ACCEPTANCE_COMMAND="${ACCEPTANCE_COMMAND:-{{START_COMMAND}}}"
+ACCEPTANCE_DEVICE="${ACCEPTANCE_DEVICE:-${FLUTTER_DEVICE:-}}"
+ACCEPTANCE_TIMEOUT_SECONDS="${ACCEPTANCE_TIMEOUT_SECONDS:-600}"
+ACCEPTANCE_KEEP_RUNNING="${ACCEPTANCE_KEEP_RUNNING:-0}"
+ACCEPTANCE_DRY_RUN="${ACCEPTANCE_DRY_RUN:-0}"
+
+ARTIFACT_DIR="$ROOT_DIR/.dart_tool/acceptance"
+RUN_ID="$(date +%Y%m%d-%H%M%S)"
+RUN_DIR="$ARTIFACT_DIR/$RUN_ID"
+LOG_FILE="$RUN_DIR/acceptance.log"
+SUMMARY_FILE="$RUN_DIR/summary.md"
+CHECKLIST_FILE="$RUN_DIR/manual-checklist.md"
+SCREENSHOT_FILE="$RUN_DIR/startup.png"
+
+require_bin() {
+  if ! command -v "$1" >/dev/null 2>&1; then
+    echo "缺少命令: $1" >&2
+    exit 1
+  fi
+}
+
+print_cmd() {
+  printf '    %s\n' "$*"
+}
+
+find_flutter_ios_simulator() {
+  if ! command -v flutter >/dev/null 2>&1; then
+    return 0
+  fi
+
+  local devices line
+  devices="$(flutter devices 2>/dev/null || true)"
+  line="$(printf '%s\n' "$devices" | grep '(simulator)' | grep -E '[[:space:]]ios[[:space:]]' | head -n 1 || true)"
+
+  if [ -n "$line" ]; then
+    printf '%s\n' "$line" | grep -Eo '[A-F0-9]{8}(-[A-F0-9]{4}){3}-[A-F0-9]{12}' | head -n 1 || true
+  fi
+}
+
+write_manual_checklist() {
+  cat >"$CHECKLIST_FILE" <<EOF
+# 本地/模拟器手动验收清单
+
+- 时间：$RUN_ID
+- 项目：{{PROJECT_NAME}}
+- 技术栈：{{STACK_NAME}}
+- 命令：$ACCEPTANCE_COMMAND
+- 设备：${ACCEPTANCE_DEVICE:-未指定}
+- 日志：$LOG_FILE
+- 启动截图：$SCREENSHOT_FILE
+
+## 检查项
+
+- [ ] 应用或服务已启动，没有停留在崩溃页、错误页或不可交互状态。
+- [ ] 按当前需求的复现路径进入目标页面或功能。
+- [ ] 目标展示、交互、异常态符合需求描述。
+- [ ] 关键日志无新增 crash、未处理异常、平台异常或接口阻塞。
+- [ ] 如涉及权限、相册、文件选择、录音、支付或外部系统，已实际走过对应路径或记录无法验证的 blocker。
+
+## 结果
+
+- 验收人：
+- 结论：通过 / 不通过
+- 备注：
+EOF
+}
+
+if [ ! -f "$ROOT_DIR/init.sh" ]; then
+  echo "当前目录缺少 init.sh: $ROOT_DIR" >&2
+  exit 1
+fi
+
+mkdir -p "$RUN_DIR"
+
+if [ -z "$ACCEPTANCE_DEVICE" ] && [ "{{STACK_NAME}}" = "flutter" ]; then
+  ACCEPTANCE_DEVICE="$(find_flutter_ios_simulator | head -n 1 || true)"
+fi
+
+RUN_CMD="$ACCEPTANCE_COMMAND"
+if [ -n "$ACCEPTANCE_DEVICE" ] && [ "{{STACK_NAME}}" = "flutter" ] && ! printf '%s' "$RUN_CMD" | grep -Eq '(^|[[:space:]])-d([[:space:]]|$)'; then
+  RUN_CMD="$RUN_CMD -d $ACCEPTANCE_DEVICE"
+fi
+
+echo "==> 验收命令"
+print_cmd "$RUN_CMD"
+echo "==> 验收设备: ${ACCEPTANCE_DEVICE:-未指定}"
+echo "==> 验收产物目录: $RUN_DIR"
+
+write_manual_checklist
+
+if [ "$ACCEPTANCE_DRY_RUN" = "1" ]; then
+  cat >"$SUMMARY_FILE" <<EOF
+# 本地/模拟器验收摘要
+
+- 状态：dry-run
+- 项目：{{PROJECT_NAME}}
+- 技术栈：{{STACK_NAME}}
+- 命令：\`$RUN_CMD\`
+- 设备：${ACCEPTANCE_DEVICE:-未指定}
+- 手动清单：$CHECKLIST_FILE
+EOF
+  echo "==> dry-run：未启动应用或服务"
+  echo "==> 手动验收清单: $CHECKLIST_FILE"
+  exit 0
+fi
+
+set +e
+bash -lc "$RUN_CMD" >"$LOG_FILE" 2>&1 &
+RUN_PID=$!
+set -e
+
+echo "$RUN_PID" >"$RUN_DIR/acceptance.pid"
+
+deadline=$((SECONDS + ACCEPTANCE_TIMEOUT_SECONDS))
+started=0
+
+while kill -0 "$RUN_PID" >/dev/null 2>&1; do
+  if grep -Eq 'Flutter run key commands|To hot reload changes|A Dart VM Service|Local:|localhost|ready|Ready|started|Started|listening|Listening|compiled|Compiled' "$LOG_FILE"; then
+    started=1
+    break
+  fi
+
+  if grep -Eq 'Error launching application|Failed to build|Could not build|No supported devices|Unhandled exception|PlatformException|EADDRINUSE|address already in use' "$LOG_FILE"; then
+    echo "==> 验收启动失败，日志尾部:"
+    tail -n 80 "$LOG_FILE" || true
+    kill "$RUN_PID" >/dev/null 2>&1 || true
+    wait "$RUN_PID" >/dev/null 2>&1 || true
+    exit 1
+  fi
+
+  if [ "$SECONDS" -ge "$deadline" ]; then
+    echo "==> 启动等待超时: ${ACCEPTANCE_TIMEOUT_SECONDS}s"
+    tail -n 80 "$LOG_FILE" || true
+    kill "$RUN_PID" >/dev/null 2>&1 || true
+    wait "$RUN_PID" >/dev/null 2>&1 || true
+    exit 1
+  fi
+
+  sleep 2
+done
+
+if [ "$started" != "1" ]; then
+  echo "==> 验收命令提前退出或未输出可识别启动信号，日志尾部:"
+  tail -n 80 "$LOG_FILE" || true
+  exit 1
+fi
+
+if command -v xcrun >/dev/null 2>&1 && [ -n "$ACCEPTANCE_DEVICE" ]; then
+  xcrun simctl io "$ACCEPTANCE_DEVICE" screenshot "$SCREENSHOT_FILE" >/dev/null 2>&1 || true
+fi
+
+cat >"$SUMMARY_FILE" <<EOF
+# 本地/模拟器验收摘要
+
+- 状态：已启动
+- 项目：{{PROJECT_NAME}}
+- 技术栈：{{STACK_NAME}}
+- 命令：\`$RUN_CMD\`
+- 设备：${ACCEPTANCE_DEVICE:-未指定}
+- 日志：$LOG_FILE
+- 截图：$SCREENSHOT_FILE
+- 手动清单：$CHECKLIST_FILE
+- 进程：$RUN_PID
+EOF
+
+echo "==> 应用或服务已启动，验收摘要: $SUMMARY_FILE"
+echo "==> 手动验收清单: $CHECKLIST_FILE"
+
+if [ "$ACCEPTANCE_KEEP_RUNNING" = "1" ]; then
+  echo "==> 保持验收命令运行中，按 Ctrl-C 结束。"
+  wait "$RUN_PID"
+else
+  echo "==> 结束验收命令。若要保留运行用于手动点测，请设置 ACCEPTANCE_KEEP_RUNNING=1。"
+  kill "$RUN_PID" >/dev/null 2>&1 || true
+  wait "$RUN_PID" >/dev/null 2>&1 || true
+fi

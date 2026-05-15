@@ -1,0 +1,51 @@
+# 执行计划：建立 agent 持久化工作流
+
+## 什么时候读
+
+每次开始或继续 `REQ-WORKFLOW-BOOTSTRAP` 时读取。
+
+## 目标
+
+确认 `{{PROJECT_NAME}}` 已具备需求驱动的 agent 工作流，并能通过标准验证入口续跑。
+
+## 范围
+
+- 包含：工作流文件、文档地图、项目理解模板、需求模板、开发文档模板、执行计划模板、测试报告模板、验证入口。
+- 不包含：业务代码修改、真实需求实现、生产发布或高成本构建。
+
+## 步骤状态机
+
+- `not_started`：未开始。
+- `in_progress`：正在执行。
+- `implemented`：改动完成但未验证。
+- `verified`：验证通过且证据已记录。
+- `failed`：验证失败，需修复复测。
+- `blocked`：外部条件阻塞。
+- `skipped_with_reason`：有明确原因跳过。
+
+## 当前步骤
+
+`step-01`
+
+## 开发步骤
+
+| 步骤 | 状态 | 目标 | 读取 | 验证 | 证据 |
+| --- | --- | --- | --- | --- | --- |
+| step-01 | in_progress | 运行首次基础验证 | `docs/verification.md` | `./init.sh` | 待补充 |
+| step-02 | not_started | 更新需求追踪和会话状态 | `docs/requirements/traceability.md`、`docs/coding-progress.md` | 检查证据已写回 | 待补充 |
+| step-03 | not_started | 如验证通过，将 bootstrap 标记为 passing | `docs/feature_list.json` | JSON 合法，状态一致 | 待补充 |
+
+## 风险与 blocker
+
+- 首次验证尚未运行。
+
+## 进度日志
+
+- {{CURRENT_DATE}}：工作流文件已生成，等待运行 `./init.sh`。
+
+## 完成标准
+
+- `./init.sh` 通过或失败原因被记录为 blocker。
+- `docs/requirements/traceability.md` 有验证证据。
+- `docs/coding-progress.md` 记录最新状态。
+- `docs/feature_list.json` 状态与实际验证结果一致。

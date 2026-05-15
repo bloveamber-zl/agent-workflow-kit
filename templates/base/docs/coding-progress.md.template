@@ -1,0 +1,49 @@
+# 进度日志
+
+## 当前已验证状态
+
+- 仓库根目录：`{{PROJECT_ROOT}}`
+- 技术栈：`{{STACK_NAME}}`
+- 标准启动路径：`RUN_START_COMMAND=1 ./init.sh`
+- 标准验证路径：`./init.sh`
+- 严格验证路径：`VERIFY_MODE=analyze ./init.sh`
+- 测试路径：`VERIFY_MODE=test ./init.sh`
+- 当前需求：`REQ-WORKFLOW-BOOTSTRAP 建立 agent 持久化工作流`
+- 当前需求索引：`docs/feature_list.json`
+- 当前需求文档：`docs/requirements/parsed-requirements.md`
+- 当前开发文档：`docs/design/workflow-bootstrap.md`
+- 当前执行计划：`docs/exec-plans/active/workflow-bootstrap.md`
+- 当前步骤：`step-01 首次验证工作流`
+- 最新完成变更：`workflow-bootstrap 建立 agent 持久化工作流` 已生成，等待首次项目内验证。
+- 当前 blocker：暂无。
+- 开工时已存在的未提交改动：首次生成后请运行 `git status --short` 并在这里记录。
+
+## 续跑规则
+
+每次开始任务时：
+
+1. 读取本文件确认当前需求、计划和步骤。
+2. 读取 `docs/exec-plans/active/workflow-bootstrap.md` 或当前 active plan。
+3. 如果上次验证失败，先读 `docs/reports/test-report.md` 并继续修复复测。
+4. 如果存在 `docs/requirements/open-questions.md` 中未确认问题，先向用户确认。
+5. 只有当前步骤验证通过后，才更新 active plan 步骤状态和 traceability。
+
+## 会话记录
+
+### Session 001
+
+- 日期：{{CURRENT_DATE}}
+- 本轮目标：为 `{{PROJECT_NAME}}` 建立需求驱动的 agent 持久化工作流。
+- 已完成：
+  - 生成根指令文件 `AGENTS.md`。
+  - 生成统一验证入口 `init.sh`。
+  - 生成文档地图、进度日志、需求索引、项目理解模板、需求模板、开发文档模板、执行计划模板、测试报告和会话交接模板。
+- 运行过的验证：
+  - 待运行：`./init.sh`
+- 已记录证据：
+  - 工作流文件已生成。
+- 提交记录：未提交。
+- 已知风险或未解决问题：
+  - 首次运行 `./init.sh` 前，当前验证状态仍未确认。
+- 下一步最佳动作：
+  - 运行 `./init.sh`，并把结果补充到本文件、`docs/exec-plans/active/workflow-bootstrap.md`、`docs/requirements/traceability.md` 和 `docs/feature_list.json`。

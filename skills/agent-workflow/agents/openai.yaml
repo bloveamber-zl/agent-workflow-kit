@@ -1,0 +1,7 @@
+interface:
+  display_name: "Agent Workflow"
+  short_description: "为项目生成或优化 Codex 工作流"
+  default_prompt: "Use $agent-workflow to generate or improve the reusable Codex workflow for this project."
+
+policy:
+  allow_implicit_invocation: true

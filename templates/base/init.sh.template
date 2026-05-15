@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$ROOT_DIR"
+
+VERIFY_MODE="${VERIFY_MODE:-smoke}"
+SYNC_DEPS="${SYNC_DEPS:-0}"
+RUN_START_COMMAND="${RUN_START_COMMAND:-0}"
+
+PRIMARY_VERIFY_COMMAND={{PRIMARY_VERIFY_COMMAND_SHELL}}
+STRICT_VERIFY_COMMAND={{STRICT_VERIFY_COMMAND_SHELL}}
+TEST_COMMAND={{TEST_COMMAND_SHELL}}
+START_COMMAND={{START_COMMAND_SHELL}}
+DEPENDENCY_SYNC_COMMAND={{DEPENDENCY_SYNC_COMMAND_SHELL}}
+
+run_optional_command() {
+  local label="$1"
+  local command="$2"
+
+  if [ -z "$command" ] || [ "$command" = "__SKIP__" ]; then
+    echo "==> 跳过: $label"
+    return 0
+  fi
+
+  echo "==> $label"
+  echo "    $command"
+  bash -lc "$command"
+}
+
+run_verify() {
+  case "$VERIFY_MODE" in
+    smoke)
+      run_optional_command "运行基础验证" "$PRIMARY_VERIFY_COMMAND"
+      ;;
+    analyze)
+      run_optional_command "运行严格验证" "$STRICT_VERIFY_COMMAND"
+      ;;
+    test)
+      run_optional_command "运行测试" "$TEST_COMMAND"
+      ;;
+    skip)
+      echo "==> 跳过基础验证（VERIFY_MODE=skip）"
+      ;;
+    *)
+      echo "不支持的 VERIFY_MODE: $VERIFY_MODE" >&2
+      echo "可选值: smoke | analyze | test | skip" >&2
+      exit 1
+      ;;
+  esac
+}
+
+if [ "$SYNC_DEPS" = "1" ]; then
+  run_optional_command "同步依赖" "$DEPENDENCY_SYNC_COMMAND"
+else
+  echo "==> 跳过依赖同步（SYNC_DEPS=0）"
+fi
+
+echo "==> 当前目录: $PWD"
+echo "==> 项目: {{PROJECT_NAME}}"
+echo "==> 技术栈: {{STACK_NAME}}"
+
+run_verify
+
+echo "==> 启动命令"
+echo "    $START_COMMAND"
+
+if [ "$RUN_START_COMMAND" = "1" ]; then
+  run_optional_command "启动应用或服务" "$START_COMMAND"
+else
+  echo "如果希望 init.sh 直接启动，请设置 RUN_START_COMMAND=1。"
+fi

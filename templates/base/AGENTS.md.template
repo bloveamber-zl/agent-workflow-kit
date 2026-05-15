@@ -1,0 +1,111 @@
+# AGENTS.md
+
+这个仓库面向长时运行的 coding agent 工作流。保持本文件简短，把它当成入口和路由层；具体需求、项目规则、执行计划和验证证据都放到 `docs/` 下的专门文件。
+
+## 项目上下文
+
+- 项目名称：`{{PROJECT_NAME}}`
+- 项目根目录：`{{PROJECT_ROOT}}`
+- 技术栈：`{{STACK_NAME}}`
+- 生成日期：`{{CURRENT_DATE}}`
+
+## 项目偏好
+
+- 默认中文回复，言简意赅。
+- 优先使用轻量验证，避免默认执行完整构建、签名、发布或高成本命令。
+- 按需使用 Plan Mode 或 Subagent；只有任务可并行且边界清晰时才拆分。
+- 若编码、修复、重构或评审，按需使用 `superpowers` 和项目适用的编码准则。
+- 若提交 Git，提交信息用中文，并包含问题/需求描述、修复/实现思路或复现路径。常用前缀：`feat:`、`fix:`、`optimize:`、`docs:`、`chore:`。
+
+## 开工流程
+
+写代码前先做这些事：
+
+1. 用 `pwd` 确认当前目录是 `{{PROJECT_ROOT}}`。
+2. 读取 `docs/index.md`，按文档地图决定本轮需要继续读什么。
+3. 读取 `docs/coding-progress.md`，了解最近会话状态、当前需求、当前计划和下一步。
+4. 读取 `docs/feature_list.json`，确认项目级需求索引和当前需求阶段。
+4. 用 `git status --short` 确认工作树，避免覆盖用户已有改动。
+5. 用 `git log --oneline -5` 看最近提交。
+6. 运行 `./init.sh` 做基础验证；纯文档小改可说明原因后跳过启动验证。
+7. 如果已有 `docs/exec-plans/active/` 计划，先按当前步骤继续；没有计划时，先完成需求解析、项目侦察、开发文档和计划确认。
+
+如果基础验证一开始就失败，先修基础状态，或把失败记录为 blocker，不要在坏的起点上继续叠新功能。
+
+## 需求驱动流程
+
+当用户提供 Word、PDF 或文字需求时，按以下顺序推进：
+
+1. 解析需求，输出到 `docs/requirements/parsed-requirements.md`，不保留原始文件。
+2. 把疑问、冲突、默认假设写入 `docs/requirements/open-questions.md`，需要用户确认时先停下。
+3. 了解当前项目，按需更新 `docs/project/structure/overview.md`、`docs/project/structure/architecture.md`、`docs/project/constraints.md`、`docs/verification.md` 和 `docs/project/frontend.md`。
+4. 结合需求和项目现状生成开发文档，放入 `docs/design/YYYY-MM-DD-short-topic.md`。
+5. 根据开发文档生成执行计划，放入 `docs/exec-plans/active/YYYY-MM-DD-short-topic.md`。
+6. 让用户确认开发文档和执行计划后再改代码。
+7. 每完成一个步骤，运行该步骤登记的验证；通过后更新步骤状态、证据和 `docs/requirements/traceability.md`。
+8. 如果测试发现需求未实现，记录失败、做最小修复、复测，直到通过或记录 blocker。
+
+## 工作规则
+
+- 一次只做一个功能或一个明确修复。
+- 不要因为“代码已经写了”就把功能标记为完成。
+- 除非为了消除当前 blocker 的窄范围修复，否则不要扩大到其他功能。
+- 实现过程中不要悄悄改弱验证规则。
+- 优先依赖仓库里的持久化文件，而不是聊天记录。
+- 不要还原或清理你没有制造的未提交改动。
+- 会批量改写生成文件、格式化全仓或清理工作树的命令必须先说明风险，再按需执行。
+- `docs/feature_list.json` 只做项目级需求索引，不承载详细开发步骤。
+- `docs/coding-progress.md` 只做会话级进度日志，不替代 active plan。
+- 项目特定规则写入 `docs/project/constraints.md`，最关键硬规则可同步摘要到本文件。
+
+## 验证入口
+
+- 项目验证入口：`docs/verification.md`
+- 通用验证规则：`docs/process/verification.md`
+- 标准入口：`./init.sh`
+- 本地/模拟器验收入口：`scripts/acceptance_simulator.sh`
+- 用户未说明如何测试时，按 `docs/process/verification.md` 自动判定验证项。
+- 需求实现完成后，必须调用 `docs/process/verification.md` 对应验证模块执行测试或验收。
+- 高风险需求完成后，按 `docs/process/verification.md` 进入独立复核门禁。
+- 验证失败时不要标记 `passing`；按失败现象做最小修复后复测，直到通过或记录 blocker。
+
+## 必需文件
+
+- `docs/index.md`：文档地图和渐进披露入口
+- `docs/feature_list.json`：项目级需求索引和路由表
+- `docs/coding-progress.md`：会话进度和最近状态缓存
+- `docs/project/`：项目理解、规则、限制、验证事实和风险
+- `docs/requirements/`：解析后的需求、疑问和需求追踪矩阵
+- `docs/design/`：结合项目现状后的开发文档
+- `docs/exec-plans/active/`：当前执行计划和步骤状态
+- `docs/exec-plans/completed/`：已完成计划归档
+- `docs/reports/test-report.md`：测试与修复循环记录
+- `init.sh`：统一的启动与验证入口
+- `docs/verification.md`：项目验证入口、命令和环境事实
+- `docs/process/verification.md`：验证策略、验收判定、独立复核和失败复测规则
+- `scripts/acceptance_simulator.sh`：本地/模拟器启动验收和手动辅助验收入口
+- `docs/acceptance_simulator.md`：本地/模拟器验收使用说明
+- `docs/session-handoff.md`：较长会话可选的交接摘要
+
+## 完成定义
+
+一个功能只有在以下条件都满足时才算完成：
+
+- 目标行为已经实现
+- 需求追踪矩阵显示相关需求都有实现和验证证据
+- 要求的验证真的跑过
+- 证据记录在 active plan、`docs/requirements/traceability.md` 或 `docs/reports/test-report.md`
+- 仓库仍然能按标准启动路径重新开始工作
+
+## 收尾
+
+结束会话前：
+
+1. 更新 `docs/coding-progress.md`
+2. 更新 `docs/feature_list.json`
+3. 更新当前 `docs/exec-plans/active/` 计划的步骤状态和证据
+4. 更新 `docs/requirements/traceability.md` 与 `docs/reports/test-report.md`
+5. 记录仍未解决的风险或 blocker
+6. 如本轮会话较长，更新 `docs/session-handoff.md`
+7. 按需提交；提交信息必须是中文，且说明问题/需求和实现思路
+8. 保证下一轮会话可以直接运行 `./init.sh` 并按 active plan 续跑

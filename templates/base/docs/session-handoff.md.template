@@ -1,0 +1,56 @@
+# 会话交接
+
+## 当前已验证
+
+- 现在明确可用的部分：工作流文件已生成。
+- 这轮实际跑过的验证：
+  - 待运行：`./init.sh`
+
+## 当前任务状态
+
+- 当前需求：`REQ-WORKFLOW-BOOTSTRAP 建立 agent 持久化工作流`
+- 需求索引：`docs/feature_list.json`
+- 需求文档：`docs/requirements/parsed-requirements.md`
+- 开发文档：`docs/design/workflow-bootstrap.md`
+- 执行计划：`docs/exec-plans/active/workflow-bootstrap.md`
+- 当前步骤：`step-01 运行首次基础验证`
+
+## 本轮改动
+
+- 新增了哪些代码或行为：建立需求驱动的 agent 工作流文件，不改业务代码。
+- 基础设施或 harness 发生了哪些变化：
+  - 新增 `AGENTS.md`
+  - 新增 `init.sh`
+  - 新增 `docs/index.md`、`docs/coding-progress.md`、`docs/feature_list.json`
+  - 新增 `docs/project/` 项目理解与限制模板
+  - 新增 `docs/requirements/` 需求解析与追踪模板
+  - 新增 `docs/design/` 开发文档模板
+  - 新增 `docs/exec-plans/` 执行计划模板
+  - 新增 `docs/reports/test-report.md`
+  - 新增 `docs/session-handoff.md`
+
+## 仍损坏或未验证
+
+- 已知缺陷：暂无。
+- 未验证路径：
+  - `./init.sh`
+  - `VERIFY_MODE=analyze ./init.sh`
+  - `VERIFY_MODE=test ./init.sh`
+  - 构建或发布命令
+- 下一轮会话需要注意的风险：
+  - 不要还原用户已有未提交改动。
+  - 不要无需求运行完整构建、签名或发布命令。
+
+## 下一步最佳动作
+
+- 最高优先级未完成需求：`REQ-WORKFLOW-BOOTSTRAP`
+- 为什么它是下一步：工作流生成后，需要在目标项目内跑一次标准验证并写回证据。
+- 什么结果才算 passing：`./init.sh` 通过，证据写入 `docs/coding-progress.md`、`docs/exec-plans/active/workflow-bootstrap.md`、`docs/requirements/traceability.md` 和 `docs/feature_list.json`。
+- 这一步中哪些东西不要动：不要修改业务代码，不要执行高风险清理命令。
+
+## 命令
+
+- 启动命令：`RUN_START_COMMAND=1 ./init.sh`
+- 验证命令：`./init.sh`
+- 严格验证命令：`VERIFY_MODE=analyze ./init.sh`
+- 测试命令：`VERIFY_MODE=test ./init.sh`

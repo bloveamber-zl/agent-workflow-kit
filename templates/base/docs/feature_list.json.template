@@ -1,0 +1,45 @@
+{
+  "project": "{{PROJECT_NAME}}",
+  "last_updated": "{{CURRENT_DATE}}",
+  "rules": {
+    "single_active_requirement": true,
+    "feature_list_is_index_only": true,
+    "passing_requires_traceability_evidence": true,
+    "do_not_skip_verification": true
+  },
+  "status_legend": {
+    "intake": "需求已接收，等待解析。",
+    "clarifying": "存在待确认问题，不能进入开发。",
+    "designing": "正在结合项目现状生成或确认开发文档。",
+    "planned": "执行计划已生成，等待确认或开工。",
+    "in_progress": "这个需求是当前唯一正在开发的任务。",
+    "verifying": "实现完成，正在按需求验证和修复。",
+    "blocked": "因为已记录的阻塞问题，当前无法继续推进。",
+    "passing": "需求实现、验证和证据均已完成。"
+  },
+  "features": [
+    {
+      "id": "REQ-WORKFLOW-BOOTSTRAP",
+      "priority": 0,
+      "area": "workflow",
+      "title": "建立 agent 持久化工作流",
+      "status": "blocked",
+      "stage": "bootstrap",
+      "summary": "生成 agent 工作流文件，让后续会话可以通过仓库文件恢复上下文、读取需求、执行计划、验证并交接。",
+      "requirement_doc": "docs/requirements/parsed-requirements.md",
+      "open_questions": "docs/requirements/open-questions.md",
+      "traceability": "docs/requirements/traceability.md",
+      "design_doc": "docs/design/workflow-bootstrap.md",
+      "active_plan": "docs/exec-plans/active/workflow-bootstrap.md",
+      "test_report": "docs/reports/test-report.md",
+      "updated_at": "{{CURRENT_DATE}}",
+      "next_action": "运行 ./init.sh，并把结果写入 docs/coding-progress.md、当前 active plan 和 traceability。",
+      "blockers": [
+        "首次验证尚未运行。"
+      ],
+      "evidence_summary": [
+        "{{CURRENT_DATE}}: 工作流文件已由 agent-workflow-kit 生成，等待在目标项目中运行 ./init.sh。"
+      ]
+    }
+  ]
+}

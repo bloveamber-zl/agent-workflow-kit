@@ -1,0 +1,8 @@
+stack_name: flutter
+primary_verify_command: flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings
+strict_verify_command: flutter analyze --no-pub
+test_command: flutter test --no-pub
+start_command: flutter run
+dependency_sync_command: flutter pub get
+build_docs: 构建 APK、IPA、macOS、Windows 包时，优先查看 docs/build_apk.md、docs/build_ipa.md、docs/build_macos.md、docs/build_win.md；没有文档时先补文档。
+lightweight_validation_note: Flutter 默认跳过 pub get，复用当前依赖状态；需要同步依赖时再运行 SYNC_DEPS=1 ./init.sh。

@@ -1,0 +1,43 @@
+# 项目验证入口与命令
+
+## 什么时候读
+
+准备运行验证、选择测试范围、记录验收证据或判断能否标记步骤 `verified` 时读取。
+
+通用验证流程、风险判定、独立复核和失败复测规则见 `docs/process/verification.md`。
+
+## 30 秒摘要
+
+- 基础验证：`./init.sh`
+- 严格验证：`VERIFY_MODE=analyze ./init.sh`
+- 测试验证：`VERIFY_MODE=test ./init.sh`
+- 启动验证：`RUN_START_COMMAND=1 ./init.sh`
+- 本地/模拟器验收：`scripts/acceptance_simulator.sh`
+
+## 当前命令
+
+| 类型 | 命令 | 说明 |
+| --- | --- | --- |
+| 基础验证 | `{{PRIMARY_VERIFY_COMMAND}}` | 默认轻量验证 |
+| 严格验证 | `{{STRICT_VERIFY_COMMAND}}` | 分析或更严格检查 |
+| 测试 | `{{TEST_COMMAND}}` | 自动测试 |
+| 启动 | `{{START_COMMAND}}` | 应用或服务启动 |
+| 依赖同步 | `{{DEPENDENCY_SYNC_COMMAND}}` | 需要时手动开启 |
+
+## 不能默认运行的命令
+
+- 完整发布、签名、生产迁移、删除数据、付费资源变更。
+- 成本高或需要账号权限的构建命令，除非用户明确要求。
+
+## 项目特殊注意
+
+- 需求未说明验证方式时，先按 `docs/process/verification.md` 判定验证项，再写入 active plan。
+- 涉及 UI、交互、权限、文件、录音、支付或原生能力时，仅基础验证通常不足以证明完成。
+- 高风险需求完成后，按 `docs/process/verification.md` 的独立复核门禁执行。
+
+## 证据记录位置
+
+- 当前 active plan 的步骤证据。
+- `docs/requirements/traceability.md`。
+- `docs/reports/test-report.md`。
+- 必要时补充到 `docs/coding-progress.md`。

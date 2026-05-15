@@ -1,0 +1,8 @@
+stack_name: node
+primary_verify_command: npm run lint --if-present
+strict_verify_command: npm run lint --if-present
+test_command: npm test --if-present
+start_command: npm run dev --if-present
+dependency_sync_command: npm install
+build_docs: 构建或发布前优先查看 package.json scripts 和 docs/build.md；不要默认运行生产发布命令。
+lightweight_validation_note: Node 默认只运行 npm script 中已存在的 lint/test/dev 命令；不存在时 npm 会跳过。

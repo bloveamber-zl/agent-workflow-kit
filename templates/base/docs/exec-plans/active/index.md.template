@@ -1,0 +1,16 @@
+# 当前执行计划
+
+## 什么时候读
+
+每次开工时读取，用来定位当前 active plan。
+
+## 当前计划
+
+- `workflow-bootstrap.md`：首次验证并确认 agent 工作流可用。
+
+## 规则
+
+- 同一时间只应有一个主要 active plan 处于 `in_progress`。
+- 每份计划只有一个清晰的当前步骤。
+- 步骤验证通过后才能改为 `verified`。
+- 已完成计划移动到 `docs/exec-plans/completed/`，并更新 `docs/feature_list.json`。

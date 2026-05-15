@@ -1,0 +1,8 @@
+stack_name: generic
+primary_verify_command: printf '%s\n' 'TODO: configure PRIMARY_VERIFY_COMMAND in init.sh'
+strict_verify_command: printf '%s\n' 'TODO: configure STRICT_VERIFY_COMMAND in init.sh'
+test_command: printf '%s\n' 'TODO: configure TEST_COMMAND in init.sh'
+start_command: printf '%s\n' 'TODO: configure START_COMMAND in init.sh'
+dependency_sync_command: __SKIP__
+build_docs: 没有内置构建文档。请按项目实际情况补充 docs/build.md 或其他构建说明。
+lightweight_validation_note: 通用模板不会猜测项目命令；生成后请优先把 init.sh 中的 TODO 命令替换成项目真实验证命令。

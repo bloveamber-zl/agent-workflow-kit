@@ -1,0 +1,129 @@
+# 验证与验收工作流
+
+这份文档承接 `AGENTS.md` 中的验证入口。目标是让每个需求都能根据自身风险自动选择验证方式，并在实现完成后调用对应验证模块；如果失败，则继续修复和复测，直到通过或记录 blocker。
+
+项目实际命令、不能默认运行的高成本命令和当前验证事实写在 `docs/verification.md`。本文件只放通用流程。
+
+## 推荐闭环
+
+默认由主 Agent 串起完整闭环：
+
+```text
+需求解析 -> 开发文档 -> 执行计划确认 -> 实现 -> 验证模块 -> 独立复核门禁 -> 修复 -> 复测 -> 记录证据
+```
+
+职责划分：
+
+- 主实现流程：理解需求、更新 active plan、实现代码、运行验证、修复失败。
+- 验证模块：根据需求内容运行单测、`./init.sh`、本地/模拟器验收或构建验证。
+- 独立复核门禁：用 review 视角挑问题，重点检查需求遗漏、边界条件、UI 还原、真实环境风险和验证证据。
+- 回修复测：发现问题后回到主实现流程做最小修复，再重新运行同一组验证和必要复核。
+
+一般需求可以由主 Agent 自查完成复核。高风险需求应启用独立复核视角；当用户明确要求 Subagent，或当前环境支持并且任务边界清晰时，可使用独立 Subagent 做复核。
+
+## 自动判定规则
+
+创建或登记需求时，即使用户没有说明如何测试，也要根据需求内容在开发文档、active plan 和 `docs/requirements/traceability.md` 写入对应验证项。
+
+需求实现完成后，必须按已登记的验证项调用对应验证模块：
+
+- 基础验证模块：按 `docs/verification.md` 中的项目命令运行基础验证、严格验证或测试
+- 局部测试模块：具体测试文件或针对性测试命令
+- 本地/模拟器验收模块：`scripts/acceptance_simulator.sh`、`ACCEPTANCE_KEEP_RUNNING=1 scripts/acceptance_simulator.sh`
+- 构建验证模块：按需查看平台构建文档后执行对应构建命令
+
+默认判定：
+
+- 纯逻辑、解析、工具函数、状态计算：优先补单测或局部测试，并运行对应测试、`./init.sh`。
+- 接口字段、缓存、本地持久化、状态流转：补模型/解析/状态测试或可验证日志路径，并运行对应测试、`./init.sh`。
+- 页面 UI、设计稿还原、文案、布局、弹窗、滚动、键盘、空状态：运行 `./init.sh`，并按风险运行 `scripts/acceptance_simulator.sh` 或 `ACCEPTANCE_KEEP_RUNNING=1 scripts/acceptance_simulator.sh` 做本地/模拟器验收。
+- 权限、相册、文件选择、录音、播放、支付、原生插件、平台配置：必须做本地/模拟器验收；如果只靠本地/模拟器不能证明原生改动，再考虑平台构建，并说明原因。
+- 纯文档、注释、任务清单：可跳过本地/模拟器验收，但要说明跳过原因，并至少运行格式、JSON、diff 类轻量验证。
+
+## 独立复核门禁
+
+以下需求完成后，必须进入独立复核门禁：
+
+- 设计稿还原、复杂页面、弹窗、键盘、滚动、空状态。
+- 权限、相册、文件选择、录音、播放、支付。
+- 原生插件、平台配置、构建脚本。
+- 涉及扣费、资产、钱包、账号状态、消息发送等高影响用户行为。
+- 修改范围跨多个模块，或验证失败后已经修复过一轮。
+
+复核要站在“找问题”的角度，不重复实现者的证明路径。检查清单：
+
+- 需求是否完整覆盖，有没有只实现了局部场景。
+- 验证项是否匹配需求风险，有没有漏跑本地/模拟器验收或局部测试。
+- UI 是否存在设计稿偏差、溢出、遮挡、安全区、长文案、空状态问题。
+- 异常、取消、无权限、接口缺字段、重复点击、异步返回后页面销毁等边界是否处理。
+- 证据是否足以支持 `passing`，包括命令、日志、验收产物或人工结论。
+
+复核发现问题时：
+
+1. 在 `docs/coding-progress.md` 或当前任务证据中记录问题和复现路径。
+2. 回到主实现流程做最小修复。
+3. 重新运行原验证项，以及覆盖该问题的新增验证项。
+4. 再次进入复核；通过后才能标记 `passing`。
+
+## 本地/模拟器验收
+
+- 验收入口：`scripts/acceptance_simulator.sh`
+- 使用说明：`docs/acceptance_simulator.md`
+
+常用命令：
+
+```bash
+# 只检查命令生成和产物路径
+ACCEPTANCE_DRY_RUN=1 scripts/acceptance_simulator.sh
+
+# 启动并自动结束
+scripts/acceptance_simulator.sh
+
+# 启动后保持运行，方便人工点测
+ACCEPTANCE_KEEP_RUNNING=1 scripts/acceptance_simulator.sh
+
+# 自定义验收启动命令
+ACCEPTANCE_COMMAND='<command>' scripts/acceptance_simulator.sh
+```
+
+涉及页面展示、权限、相册、文件选择、录音、支付页等用户可见交互时，按风险运行本地/模拟器验收，并把 `summary.md`、`manual-checklist.md` 或人工结论记录到 active plan、`docs/requirements/traceability.md` 或 `docs/reports/test-report.md`。
+
+本地/模拟器验收可能触发平台编译、设备访问或权限访问；不要作为每次轻量验证的默认步骤，按需求风险执行。
+
+## 失败处理
+
+验证失败时不要把功能标记为 `passing`。
+
+1. 读取失败命令的完整输出。
+2. 根据失败日志、截图或模拟器现象定位最小问题。
+3. 做最小修复，不扩大到无关功能。
+4. 重新运行同一组验证。
+5. 若继续失败，重复定位和修复。
+6. 若因外部服务、账号、权限或环境无法继续，记录为 blocker。
+
+blocker 记录必须包含：
+
+- 失败命令
+- 失败现象
+- 已尝试步骤
+- 下一步需要的账号、权限、环境或外部信息
+
+## 证据记录
+
+功能只有在目标行为实现、验证通过、证据写回后，才能标记为 `passing`。
+
+证据至少写入以下位置：
+
+- 当前 active plan 的步骤证据
+- `docs/requirements/traceability.md`
+- `docs/reports/test-report.md`
+
+`docs/feature_list.json` 只保留项目级状态摘要，`docs/coding-progress.md` 只保留会话级进度摘要。
+
+页面或系统交互验收建议记录：
+
+```text
+{{CURRENT_DATE}}: 运行 ACCEPTANCE_KEEP_RUNNING=1 scripts/acceptance_simulator.sh，
+进入 xxx 页面，对照需求检查布局、文案和交互状态；
+产物目录 .dart_tool/acceptance/xxxx；结论：通过。
+```

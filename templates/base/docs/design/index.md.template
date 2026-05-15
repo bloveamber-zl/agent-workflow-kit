@@ -1,0 +1,17 @@
+# 开发文档索引
+
+## 什么时候读
+
+需要找到某个需求对应的开发文档，或准备从需求进入执行计划时读取。
+
+## 当前开发文档
+
+| 文档 | 对应需求 | 状态 |
+| --- | --- | --- |
+| `workflow-bootstrap.md` | REQ-WORKFLOW-BOOTSTRAP | 初始生成 |
+
+## 规则
+
+- 开发文档回答“结合当前项目，准备怎么实现”。
+- 需求事实写在 `docs/requirements/`，具体执行步骤写在 `docs/exec-plans/active/`。
+- 开发文档确认后，再生成或更新 active plan。

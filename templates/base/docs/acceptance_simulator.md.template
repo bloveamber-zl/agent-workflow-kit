@@ -1,0 +1,55 @@
+# 本地/模拟器验收
+
+本项目的本地/模拟器验收分两层：
+
+1. 启动验收：运行应用或服务，确认进入可交互状态，并保存日志和摘要。
+2. 手动辅助验收：生成一份清单，按当前需求的复现路径点测，并把结果写回需求证据。
+
+Flutter 项目会优先尝试识别本机 iOS 模拟器；其他项目默认使用技术栈的启动命令。必要时用 `ACCEPTANCE_COMMAND` 指定真实验收命令。
+
+## 推荐命令
+
+```bash
+# 只检查命令生成和产物路径，不启动应用
+ACCEPTANCE_DRY_RUN=1 scripts/acceptance_simulator.sh
+
+# 启动应用或服务，确认进入可交互状态后自动结束
+scripts/acceptance_simulator.sh
+
+# 启动后保持运行，方便人工继续点测
+ACCEPTANCE_KEEP_RUNNING=1 scripts/acceptance_simulator.sh
+```
+
+指定命令：
+
+```bash
+ACCEPTANCE_COMMAND='{{START_COMMAND}}' scripts/acceptance_simulator.sh
+```
+
+Flutter 指定设备示例：
+
+```bash
+ACCEPTANCE_DEVICE=<device-id> scripts/acceptance_simulator.sh
+```
+
+## 产物
+
+每次运行会写入 `.dart_tool/acceptance/<时间>/`：
+
+- `acceptance.log`：完整启动日志。
+- `startup.png`：启动后截图，截图失败不阻断启动验收。
+- `manual-checklist.md`：人工验收清单。
+- `summary.md`：本轮验收摘要。
+- `acceptance.pid`：保留运行时的进程号。
+
+## 功能验收记录方式
+
+每个需求登记时，工作流要先按需求内容自动选择验收方式；用户没有说明如何测试时，也不能省略判定。验收方式应写入 active plan 和 `docs/requirements/traceability.md`：
+
+- 纯逻辑或数据解析：跑对应单测和 `./init.sh` 即可。
+- 有页面展示或交互：额外运行 `scripts/acceptance_simulator.sh`，必要时设置 `ACCEPTANCE_KEEP_RUNNING=1` 手动点测。
+- 涉及权限、相册、文件、录音、支付页等系统交互：必须在本地/模拟器上走一遍关键路径，并把 `summary.md` 和人工结论记录到 `docs/feature_list.json` 或 `docs/coding-progress.md`。
+
+如果验收失败，先把失败现象写入 `docs/reports/test-report.md`，再根据日志、截图或手动现象做最小修复，并重新运行同一组验证。只有目标行为实现、验证通过、证据写回 active plan 和 traceability 后，需求才能标记为 `passing`。
+
+当前脚本不替代端到端自动测试。后续若高频流程需要自动点击和断言，再单独引入项目适用的 E2E 测试框架。
