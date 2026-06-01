@@ -1,0 +1,23 @@
+# Agent Traces
+
+本目录用于保存轻量任务轨迹。每个非 trivial 任务结束或中断时，可新增一份 JSON 轨迹文件，命名建议：
+
+```text
+YYYY-MM-DD-short-topic.json
+```
+
+推荐字段：
+
+```json
+{
+  "goal": "",
+  "files_read": [],
+  "files_changed": [],
+  "tools_used": [],
+  "verification_commands": [],
+  "failures": [],
+  "next_steps": []
+}
+```
+
+轨迹只记录可复盘事实，不保存密钥、账号、私有凭据或无关聊天内容。

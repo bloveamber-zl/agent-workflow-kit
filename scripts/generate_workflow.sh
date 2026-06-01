@@ -131,11 +131,14 @@ for name in "${required_values[@]}"; do
 done
 
 outputs=(
+  ".agent/state/current-task.json"
+  ".agent/traces/README.md"
   "AGENTS.md"
   "init.sh"
   "docs/index.md"
   "docs/verification.md"
   "docs/process/verification.md"
+  "docs/process/failure-taxonomy.md"
   "docs/acceptance_simulator.md"
   "docs/coding-progress.md"
   "docs/feature_list.json"
@@ -215,11 +218,14 @@ render_template() {
   ' "$source" > "$dest"
 }
 
+render_template "$KIT_ROOT/templates/base/.agent/state/current-task.json.template" "$TARGET_ROOT/.agent/state/current-task.json"
+render_template "$KIT_ROOT/templates/base/.agent/traces/README.md.template" "$TARGET_ROOT/.agent/traces/README.md"
 render_template "$KIT_ROOT/templates/base/AGENTS.md.template" "$TARGET_ROOT/AGENTS.md"
 render_template "$KIT_ROOT/templates/base/init.sh.template" "$TARGET_ROOT/init.sh"
 render_template "$KIT_ROOT/templates/base/docs/index.md.template" "$TARGET_ROOT/docs/index.md"
 render_template "$KIT_ROOT/templates/base/docs/verification.md.template" "$TARGET_ROOT/docs/verification.md"
 render_template "$KIT_ROOT/templates/base/docs/process/verification.md.template" "$TARGET_ROOT/docs/process/verification.md"
+render_template "$KIT_ROOT/templates/base/docs/process/failure-taxonomy.md.template" "$TARGET_ROOT/docs/process/failure-taxonomy.md"
 render_template "$KIT_ROOT/templates/base/docs/acceptance_simulator.md.template" "$TARGET_ROOT/docs/acceptance_simulator.md"
 render_template "$KIT_ROOT/templates/base/docs/coding-progress.md.template" "$TARGET_ROOT/docs/coding-progress.md"
 render_template "$KIT_ROOT/templates/base/docs/feature_list.json.template" "$TARGET_ROOT/docs/feature_list.json"

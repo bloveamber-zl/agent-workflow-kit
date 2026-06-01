@@ -15,6 +15,7 @@
 - 优先使用轻量验证，避免默认执行完整构建、签名、发布或高成本命令。
 - 按需使用 Plan Mode 或 Subagent；只有任务可并行且边界清晰时才拆分。
 - 若编码、修复、重构或评审，按需使用 `superpowers` 和项目适用的编码准则。
+- Flutter/Dart 开发、测试、布局、依赖、运行时错误场景优先检查并使用对应 Flutter/Dart skill。
 - 若提交 Git，提交信息用中文，并包含问题/需求描述、修复/实现思路或复现路径。常用前缀：`feat:`、`fix:`、`optimize:`、`docs:`、`chore:`。
 
 ## 开工流程
@@ -23,12 +24,13 @@
 
 1. 用 `pwd` 确认当前目录是 `{{PROJECT_ROOT}}`。
 2. 读取 `docs/index.md`，按文档地图决定本轮需要继续读什么。
-3. 读取 `docs/coding-progress.md`，了解最近会话状态、当前需求、当前计划和下一步。
-4. 读取 `docs/feature_list.json`，确认项目级需求索引和当前需求阶段。
-4. 用 `git status --short` 确认工作树，避免覆盖用户已有改动。
-5. 用 `git log --oneline -5` 看最近提交。
-6. 运行 `./init.sh` 做基础验证；纯文档小改可说明原因后跳过启动验证。
-7. 如果已有 `docs/exec-plans/active/` 计划，先按当前步骤继续；没有计划时，先完成需求解析、项目侦察、开发文档和计划确认。
+3. 读取 `.agent/state/current-task.json`，确认当前任务状态、关联需求、计划和 blocker。
+4. 读取 `docs/coding-progress.md`，了解最近会话状态、当前需求、当前计划和下一步。
+5. 读取 `docs/feature_list.json`，确认项目级需求索引和当前需求阶段。
+6. 用 `git status --short` 确认工作树，避免覆盖用户已有改动。
+7. 用 `git log --oneline -5` 看最近提交。
+8. 运行 `./init.sh` 做基础验证；纯文档小改可说明原因后跳过启动验证。
+9. 如果已有 `docs/exec-plans/active/` 计划，先按当前步骤继续；没有计划时，先完成需求解析、项目侦察、开发文档和计划确认。
 
 如果基础验证一开始就失败，先修基础状态，或把失败记录为 blocker，不要在坏的起点上继续叠新功能。
 
@@ -56,6 +58,8 @@
 - 会批量改写生成文件、格式化全仓或清理工作树的命令必须先说明风险，再按需执行。
 - `docs/feature_list.json` 只做项目级需求索引，不承载详细开发步骤。
 - `docs/coding-progress.md` 只做会话级进度日志，不替代 active plan。
+- 非 trivial 任务要维护 `.agent/state/current-task.json`；状态只使用 `intake`、`understanding`、`designing`、`planning`、`approved`、`implementing`、`verifying`、`done`、`blocked`。
+- 验证失败或任务阻塞时，按 `docs/process/failure-taxonomy.md` 做失败归因，并把证据记录到 active plan、`docs/reports/test-report.md` 或 `.agent/traces/`。
 - 项目特定规则写入 `docs/project/constraints.md`，最关键硬规则可同步摘要到本文件。
 
 ## 验证入口
@@ -68,10 +72,13 @@
 - 需求实现完成后，必须调用 `docs/process/verification.md` 对应验证模块执行测试或验收。
 - 高风险需求完成后，按 `docs/process/verification.md` 进入独立复核门禁。
 - 验证失败时不要标记 `passing`；按失败现象做最小修复后复测，直到通过或记录 blocker。
+- 失败归因入口：`docs/process/failure-taxonomy.md`
 
 ## 必需文件
 
 - `docs/index.md`：文档地图和渐进披露入口
+- `.agent/state/current-task.json`：机器可读的当前任务状态
+- `.agent/traces/`：轻量任务轨迹和复盘事实
 - `docs/feature_list.json`：项目级需求索引和路由表
 - `docs/coding-progress.md`：会话进度和最近状态缓存
 - `docs/project/`：项目理解、规则、限制、验证事实和风险
@@ -83,6 +90,7 @@
 - `init.sh`：统一的启动与验证入口
 - `docs/verification.md`：项目验证入口、命令和环境事实
 - `docs/process/verification.md`：验证策略、验收判定、独立复核和失败复测规则
+- `docs/process/failure-taxonomy.md`：失败归因分类和记录要求
 - `scripts/acceptance_simulator.sh`：本地/模拟器启动验收和手动辅助验收入口
 - `docs/acceptance_simulator.md`：本地/模拟器验收使用说明
 - `docs/session-handoff.md`：较长会话可选的交接摘要
@@ -106,6 +114,7 @@
 3. 更新当前 `docs/exec-plans/active/` 计划的步骤状态和证据
 4. 更新 `docs/requirements/traceability.md` 与 `docs/reports/test-report.md`
 5. 记录仍未解决的风险或 blocker
-6. 如本轮会话较长，更新 `docs/session-handoff.md`
-7. 按需提交；提交信息必须是中文，且说明问题/需求和实现思路
-8. 保证下一轮会话可以直接运行 `./init.sh` 并按 active plan 续跑
+6. 更新 `.agent/state/current-task.json`；长任务或失败复盘按需新增 `.agent/traces/*.json`
+7. 如本轮会话较长，更新 `docs/session-handoff.md`
+8. 按需提交；提交信息必须是中文，且说明问题/需求和实现思路
+9. 保证下一轮会话可以直接运行 `./init.sh` 并按 active plan 续跑

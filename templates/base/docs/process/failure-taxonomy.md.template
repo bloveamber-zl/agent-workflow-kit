@@ -1,0 +1,17 @@
+# 失败归因分类
+
+验证失败、工具失败或任务阻塞时，先按以下类型归因，再记录到 active plan、`docs/reports/test-report.md` 或 `.agent/traces/`。
+
+| 类型 | 含义 |
+| --- | --- |
+| `requirement_unclear` | 需求不清、冲突或缺少用户确认 |
+| `context_missing` | 项目上下文不足、关键文件未读或信息过期 |
+| `tool_failure` | 工具调用失败、脚本异常或外部服务不可用 |
+| `permission_blocked` | 权限、沙盒、审批或文件访问阻塞 |
+| `dependency_failure` | 依赖安装、版本冲突或环境缺失 |
+| `test_missing` | 缺少能证明需求的测试或验收路径 |
+| `design_error` | 设计假设错误、方案不满足约束 |
+| `implementation_error` | 代码实现缺陷、回归或边界处理错误 |
+| `verification_failed` | 验证命令执行后仍未达到完成标准 |
+
+记录失败时至少包含：失败类型、证据、最小修复动作、复测命令和当前状态。

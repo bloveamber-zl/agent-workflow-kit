@@ -4,9 +4,12 @@
 
 - `AGENTS.md`
 - `init.sh`
+- `.agent/state/current-task.json`
+- `.agent/traces/README.md`
 - `docs/index.md`
 - `docs/verification.md`
 - `docs/process/verification.md`
+- `docs/process/failure-taxonomy.md`
 - `docs/acceptance_simulator.md`
 - `docs/coding-progress.md`
 - `docs/feature_list.json`
@@ -42,6 +45,36 @@ scripts/generate_workflow.sh /path/to/project --stack generic
 scripts/generate_workflow.sh /path/to/project --stack flutter --force
 ```
 
+## 同步已有项目
+
+如果修改了本仓库的工作流模板，可用半自动升级脚本同步到已有项目。默认只预览，不写文件：
+
+```bash
+# 预览单个项目会更新哪些工作流文件
+scripts/upgrade_workflow.sh /path/to/project
+
+# 确认后应用
+scripts/upgrade_workflow.sh /path/to/project --apply
+
+# 扫描 ~/project 下已安装工作流的项目并预览
+scripts/upgrade_all_workflows.sh
+
+# 确认后批量应用
+scripts/upgrade_all_workflows.sh --apply
+```
+
+半自动升级会刷新通用入口文件，例如 `AGENTS.md`、`init.sh`、`docs/index.md`、验证说明、失败归因说明和 `scripts/acceptance_simulator.sh`。项目状态文件只补缺失，不覆盖已有内容，例如 `.agent/state/current-task.json`、`.agent/traces/README.md`、`docs/coding-progress.md`、`docs/feature_list.json`、`docs/requirements/`、`docs/design/`、`docs/exec-plans/`、`docs/reports/test-report.md` 和 `docs/project/`。
+
+## 轻量 Agent Runtime Harness
+
+生成后的项目会包含一组轻量运行时文件，用于让 agent 任务可恢复、可检查、可复盘：
+
+- `.agent/state/current-task.json`：机器可读的当前任务状态，状态值固定为 `intake`、`understanding`、`designing`、`planning`、`approved`、`implementing`、`verifying`、`done`、`blocked`。
+- `.agent/traces/README.md`：轻量 trace 约定，记录目标、读写文件、工具调用、验证命令、失败和下一步。
+- `docs/process/failure-taxonomy.md`：失败归因分类，用于把 blocker 和验证失败沉淀为可复盘事实。
+
+这不是完整 tracing 平台，不接数据库或外部观测系统；它只保证关键信息进入仓库文件，方便下一轮 agent 恢复上下文。
+
 ## 安装 Codex Skill
 
 如果希望在其他项目中通过 Codex skill 落地或优化这套工作流：
@@ -57,7 +90,7 @@ scripts/install_codex_skill.sh
 1. 打开目标项目的 `AGENTS.md`，确认项目根目录、验证命令和构建说明。
 2. 运行目标项目的 `./init.sh`。
 3. 按 `docs/index.md` 的路由读取 `docs/verification.md`、`docs/process/verification.md` 和当前 active plan。
-4. 如果验证失败，把失败原因记录到 `docs/reports/test-report.md`、当前 active plan 和 `docs/coding-progress.md`。
+4. 如果验证失败，按 `docs/process/failure-taxonomy.md` 归因，并把失败原因记录到 `docs/reports/test-report.md`、当前 active plan 和 `docs/coding-progress.md`。
 5. 后续需求先进入 `docs/requirements/parsed-requirements.md` 和 `docs/feature_list.json`，再生成 design doc 与 active plan。
 
 ## 需求驱动流程
@@ -80,6 +113,8 @@ scripts/install_codex_skill.sh
 职责分工：
 
 - `docs/feature_list.json`：项目级需求索引和路由表，不写详细步骤。
+- `.agent/state/current-task.json`：机器可读的当前任务状态，不替代 active plan。
+- `.agent/traces/`：长任务或失败复盘的轻量事实记录。
 - `docs/coding-progress.md`：会话级进度日志，不替代 active plan。
 - `docs/requirements/traceability.md`：需求、步骤、实现和测试证据的追踪矩阵。
 - `docs/exec-plans/active/*.md`：开发步骤、当前状态、验证和证据。

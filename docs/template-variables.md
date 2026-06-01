@@ -24,6 +24,8 @@
 - `{{START_COMMAND_SHELL}}`
 - `{{DEPENDENCY_SYNC_COMMAND_SHELL}}`
 
+当前 V1.1 运行时模板没有新增可配置变量，只复用 `{{CURRENT_DATE}}` 初始化 `.agent/state/current-task.json` 的 `updated_at`。
+
 新增变量时需要同步更新：
 
 1. `scripts/generate_workflow.sh`

@@ -17,11 +17,14 @@ fi
 TARGET_ROOT="$(cd "$TARGET_PATH" && pwd)"
 
 required_files=(
+  ".agent/state/current-task.json"
+  ".agent/traces/README.md"
   "AGENTS.md"
   "init.sh"
   "docs/index.md"
   "docs/verification.md"
   "docs/process/verification.md"
+  "docs/process/failure-taxonomy.md"
   "docs/acceptance_simulator.md"
   "docs/coding-progress.md"
   "docs/feature_list.json"
@@ -60,5 +63,33 @@ bash -n "$TARGET_ROOT/init.sh"
 bash -n "$TARGET_ROOT/scripts/acceptance_simulator.sh"
 
 python3 -m json.tool "$TARGET_ROOT/docs/feature_list.json" >/dev/null
+python3 -m json.tool "$TARGET_ROOT/.agent/state/current-task.json" >/dev/null
+
+python3 - "$TARGET_ROOT/.agent/state/current-task.json" <<'PY'
+import json
+import sys
+
+allowed_statuses = {
+    "intake",
+    "understanding",
+    "designing",
+    "planning",
+    "approved",
+    "implementing",
+    "verifying",
+    "done",
+    "blocked",
+}
+
+path = sys.argv[1]
+with open(path, encoding="utf-8") as f:
+    data = json.load(f)
+
+status = data.get("status")
+if status not in allowed_statuses:
+    print(f"Invalid current task status: {status!r}", file=sys.stderr)
+    print("Allowed statuses: " + ", ".join(sorted(allowed_statuses)), file=sys.stderr)
+    sys.exit(1)
+PY
 
 echo "Workflow files look valid: $TARGET_ROOT"

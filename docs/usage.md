@@ -14,6 +14,57 @@ cd /path/to/project
 
 如果目标项目已有同名文件，生成器会停止并提示冲突文件。确认要重建时再使用 `--force`。
 
+## 同步已有项目
+
+修改 `agent-workflow-kit` 的模板后，优先用半自动升级脚本同步已有项目。默认 dry-run，只打印计划：
+
+```bash
+# 单项目预览
+scripts/upgrade_workflow.sh /path/to/project
+
+# 单项目应用
+scripts/upgrade_workflow.sh /path/to/project --apply
+
+# 批量扫描 ~/project 并预览
+scripts/upgrade_all_workflows.sh
+
+# 批量应用
+scripts/upgrade_all_workflows.sh --apply
+```
+
+升级脚本会自动检测技术栈，也可以显式指定：
+
+```bash
+scripts/upgrade_workflow.sh /path/to/project --stack flutter --apply
+scripts/upgrade_all_workflows.sh ~/project --stack flutter
+```
+
+半自动模式会更新通用工作流入口、验证说明和失败归因说明，但不会覆盖项目状态、需求、计划、测试证据和项目理解文档。已有的 `.agent/state/current-task.json`、`.agent/traces/README.md`、`docs/coding-progress.md`、`docs/feature_list.json`、`docs/project/`、`docs/requirements/`、`docs/design/`、`docs/exec-plans/`、`docs/reports/test-report.md` 会保留；缺失时才补模板文件。
+
+## 轻量运行时状态
+
+生成后的项目包含：
+
+- `.agent/state/current-task.json`：记录当前任务状态、关联需求、设计文档、执行计划、改动文件、验证记录和 blocker。
+- `.agent/traces/README.md`：说明如何保存轻量任务轨迹。
+- `docs/process/failure-taxonomy.md`：统一失败归因类型。
+
+`current-task.json` 的 `status` 只允许：
+
+```text
+intake
+understanding
+designing
+planning
+approved
+implementing
+verifying
+done
+blocked
+```
+
+`scripts/validate_target.sh` 会检查这些文件存在、JSON 合法，并验证状态值是否在允许集合内。
+
 ## 通过 Codex Skill 使用
 
 本仓库提供 `agent-workflow` skill 源码，可安装到本机 Codex：
@@ -49,6 +100,8 @@ scripts/install_codex_skill.sh
 生成后的文档按渐进披露组织：
 
 - `docs/index.md`：阅读路由器。
+- `.agent/state/current-task.json`：机器可读的当前任务状态。
+- `.agent/traces/`：轻量任务轨迹。
 - `docs/feature_list.json`：项目级需求索引。
 - `docs/coding-progress.md`：会话级进度日志。
 - `docs/project/`：项目理解、特定规则、限制、验证事实和风险。

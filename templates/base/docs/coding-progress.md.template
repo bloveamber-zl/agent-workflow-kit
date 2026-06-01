@@ -13,6 +13,7 @@
 - 当前需求文档：`docs/requirements/parsed-requirements.md`
 - 当前开发文档：`docs/design/workflow-bootstrap.md`
 - 当前执行计划：`docs/exec-plans/active/workflow-bootstrap.md`
+- 当前任务状态：`.agent/state/current-task.json`
 - 当前步骤：`step-01 首次验证工作流`
 - 最新完成变更：`workflow-bootstrap 建立 agent 持久化工作流` 已生成，等待首次项目内验证。
 - 当前 blocker：暂无。
@@ -23,10 +24,11 @@
 每次开始任务时：
 
 1. 读取本文件确认当前需求、计划和步骤。
-2. 读取 `docs/exec-plans/active/workflow-bootstrap.md` 或当前 active plan。
-3. 如果上次验证失败，先读 `docs/reports/test-report.md` 并继续修复复测。
-4. 如果存在 `docs/requirements/open-questions.md` 中未确认问题，先向用户确认。
-5. 只有当前步骤验证通过后，才更新 active plan 步骤状态和 traceability。
+2. 读取 `.agent/state/current-task.json` 确认机器可读状态。
+3. 读取 `docs/exec-plans/active/workflow-bootstrap.md` 或当前 active plan。
+4. 如果上次验证失败，先读 `docs/process/failure-taxonomy.md` 和 `docs/reports/test-report.md`，再继续修复复测。
+5. 如果存在 `docs/requirements/open-questions.md` 中未确认问题，先向用户确认。
+6. 只有当前步骤验证通过后，才更新 active plan 步骤状态和 traceability。
 
 ## 会话记录
 

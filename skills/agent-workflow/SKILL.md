@@ -36,9 +36,11 @@ If that path is unavailable, check `AGENT_WORKFLOW_KIT_ROOT`, then ask the user 
      - `scripts/generate_workflow.sh`
      - `scripts/validate_target.sh`
      - `scripts/install_codex_skill.sh`
+     - `scripts/upgrade_workflow.sh`
+     - `scripts/upgrade_all_workflows.sh`
 
 3. Decide the operation:
-   - If `AGENTS.md`, `init.sh`, `docs/feature_list.json`, `docs/verification.md`, `docs/process/verification.md`, `docs/acceptance_simulator.md`, `docs/project/structure/overview.md`, `docs/project/features/overview.md`, `docs/requirements/parsed-requirements.md`, `docs/design/index.md`, `docs/exec-plans/active/index.md`, `docs/reports/test-report.md`, or `scripts/acceptance_simulator.sh` is missing, generate the workflow for a new target or optimize the existing workflow in place.
+   - If `.agent/state/current-task.json`, `.agent/traces/README.md`, `AGENTS.md`, `init.sh`, `docs/feature_list.json`, `docs/verification.md`, `docs/process/verification.md`, `docs/process/failure-taxonomy.md`, `docs/acceptance_simulator.md`, `docs/project/structure/overview.md`, `docs/project/features/overview.md`, `docs/requirements/parsed-requirements.md`, `docs/design/index.md`, `docs/exec-plans/active/index.md`, `docs/reports/test-report.md`, or `scripts/acceptance_simulator.sh` is missing, generate the workflow for a new target or optimize the existing workflow in place.
    - If workflow files already exist, optimize in place after reading them.
    - Never use `--force` unless the user explicitly asks to overwrite generated workflow files.
 
@@ -56,17 +58,47 @@ If that path is unavailable, check `AGENT_WORKFLOW_KIT_ROOT`, then ask the user 
 
 Replace paths and stack with the actual values. If generation stops because files already exist, switch to the optimization workflow unless the user requested `--force`.
 
-6. Optimize existing workflow:
-   - Read current `AGENTS.md`, `init.sh`, `docs/index.md`, `docs/verification.md`, `docs/process/verification.md`, `docs/acceptance_simulator.md`, `docs/coding-progress.md`, `docs/feature_list.json`, `docs/session-handoff.md`, `docs/project/*`, `docs/requirements/*`, `docs/design/index.md`, `docs/exec-plans/active/index.md`, `docs/exec-plans/tech-debt-tracker.md`, `docs/reports/test-report.md`, and `scripts/acceptance_simulator.sh` when present.
+6. Upgrade existing workflow from current templates:
+   - If the user asks to sync or upgrade an existing project from the latest kit templates, run a dry-run first:
+
+```bash
+"/path/to/agent-workflow-kit/scripts/upgrade_workflow.sh" "/path/to/target" --stack flutter
+```
+
+   - Review the planned changes with the user.
+   - Apply only after confirmation:
+
+```bash
+"/path/to/agent-workflow-kit/scripts/upgrade_workflow.sh" "/path/to/target" --stack flutter --apply
+```
+
+   - For many local projects, default to scanning `~/project` and dry-run first:
+
+```bash
+"/path/to/agent-workflow-kit/scripts/upgrade_all_workflows.sh" "$HOME/project"
+```
+
+   - Apply batch upgrades only after confirmation:
+
+```bash
+"/path/to/agent-workflow-kit/scripts/upgrade_all_workflows.sh" "$HOME/project" --apply
+```
+
+   - The upgrade scripts refresh common workflow entrypoints, validation docs, and failure taxonomy docs, but only add missing state files. They must not overwrite existing `.agent/state/current-task.json`, `.agent/traces/README.md`, `docs/coding-progress.md`, `docs/feature_list.json`, `docs/project/`, `docs/requirements/`, `docs/design/`, `docs/exec-plans/`, or `docs/reports/test-report.md` content.
+
+7. Optimize existing workflow:
+   - Read current `.agent/state/current-task.json`, `.agent/traces/README.md`, `AGENTS.md`, `init.sh`, `docs/index.md`, `docs/verification.md`, `docs/process/verification.md`, `docs/process/failure-taxonomy.md`, `docs/acceptance_simulator.md`, `docs/coding-progress.md`, `docs/feature_list.json`, `docs/session-handoff.md`, `docs/project/*`, `docs/requirements/*`, `docs/design/index.md`, `docs/exec-plans/active/index.md`, `docs/exec-plans/tech-debt-tracker.md`, `docs/reports/test-report.md`, and `scripts/acceptance_simulator.sh` when present.
    - Preserve project-specific instructions, build notes, private constraints, and verification commands.
    - Keep common workflow guidance generic; do not hard-code one business project's rules into reusable templates.
    - Prefer narrow edits: fix missing files, unresolved placeholders, stale commands, invalid JSON, weak verification notes, missing acceptance guidance, missing requirement traceability, missing project constraints, or missing active plan status.
    - Keep `docs/feature_list.json` as a project-level requirement index only; detailed steps belong in `docs/exec-plans/active/*.md`.
    - Keep `docs/coding-progress.md` as a session-level progress log only; full plans and evidence belong in active plans, traceability, and test reports.
+   - Keep `.agent/state/current-task.json` as machine-readable current task state only; full plans and evidence belong in active plans, traceability, and test reports.
+   - Use `docs/process/failure-taxonomy.md` when verification fails or the task is blocked, and record the failure type with evidence.
    - Put project-specific rules and limitations in `docs/project/constraints.md`; only summarize the most critical hard rules in `AGENTS.md`.
    - Ensure `docs/project/constraints.md` includes the coding convention that new methods and variables should have comments explaining purpose or business meaning, while simple local temporaries may omit comments when readability is clear.
 
-7. Validate:
+8. Validate:
 
 ```bash
 "/path/to/agent-workflow-kit/scripts/validate_target.sh" "/path/to/target"

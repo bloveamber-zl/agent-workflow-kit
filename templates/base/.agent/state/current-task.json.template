@@ -1,0 +1,10 @@
+{
+  "status": "intake",
+  "requirement_id": "",
+  "design_doc": "",
+  "exec_plan": "",
+  "changed_files": [],
+  "verification": [],
+  "blockers": [],
+  "updated_at": "{{CURRENT_DATE}}"
+}
