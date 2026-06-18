@@ -1,0 +1,17 @@
+{
+  "workflow_version": "2.0",
+  "template_revision": "{{TEMPLATE_REVISION}}",
+  "kit_version": "{{KIT_VERSION}}",
+  "project_name": "{{PROJECT_NAME}}",
+  "project_root": "{{PROJECT_ROOT}}",
+  "stack": "{{STACK_NAME}}",
+  "trace_enabled": true,
+  "eval_enabled": false,
+  "enhancements": {
+    "patrol": {{PATROL_ENABLED_JSON}},
+    "codegraph": {{CODEGRAPH_ENABLED_JSON}},
+    "opendesign": {{OPENDESIGN_ENABLED_JSON}}
+  },
+  "allow_overwrite": false,
+  "created_at": "{{CURRENT_DATE}}"
+}

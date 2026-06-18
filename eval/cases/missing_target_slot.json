@@ -1,0 +1,10 @@
+{
+  "id": "missing_target_slot",
+  "input": "帮我安装 agent workflow",
+  "fixture": "",
+  "expected": {
+    "intent": "generate_workflow",
+    "stack": "generic",
+    "requires_user_input": true
+  }
+}

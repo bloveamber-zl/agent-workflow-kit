@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agent Workflow Trace",
+  "type": "object",
+  "required": ["task_id", "user_request", "target_path", "nodes", "final_status"],
+  "properties": {
+    "task_id": {
+      "type": "string"
+    },
+    "user_request": {
+      "type": "string"
+    },
+    "target_path": {
+      "type": "string"
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "status"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "running", "passed", "failed", "skipped"]
+          },
+          "input": {
+            "type": "object"
+          },
+          "output": {
+            "type": "object"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "final_status": {
+      "type": "string",
+      "enum": ["passed", "failed", "blocked"]
+    }
+  },
+  "additionalProperties": true
+}

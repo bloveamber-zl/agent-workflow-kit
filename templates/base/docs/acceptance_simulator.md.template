@@ -32,11 +32,20 @@ Flutter 指定设备示例：
 ACCEPTANCE_DEVICE=<device-id> scripts/acceptance_simulator.sh
 ```
 
+指定验收场景和预期路径：
+
+```bash
+ACCEPTANCE_SCENARIO='登录页布局验收' \
+ACCEPTANCE_EXPECTED_PATH='启动应用 -> 打开登录页 -> 检查按钮和错误态' \
+scripts/acceptance_simulator.sh
+```
+
 ## 产物
 
 每次运行会写入 `.dart_tool/acceptance/<时间>/`：
 
 - `acceptance.log`：完整启动日志。
+- `evidence.json`：机器可读验收证据，记录状态、命令、场景、设备、日志和产物路径。
 - `startup.png`：启动后截图，截图失败不阻断启动验收。
 - `manual-checklist.md`：人工验收清单。
 - `summary.md`：本轮验收摘要。
@@ -49,6 +58,7 @@ ACCEPTANCE_DEVICE=<device-id> scripts/acceptance_simulator.sh
 - 纯逻辑或数据解析：跑对应单测和 `./init.sh` 即可。
 - 有页面展示或交互：额外运行 `scripts/acceptance_simulator.sh`，必要时设置 `ACCEPTANCE_KEEP_RUNNING=1` 手动点测。
 - 涉及权限、相册、文件、录音、支付页等系统交互：必须在本地/模拟器上走一遍关键路径，并把 `summary.md` 和人工结论记录到 `docs/feature_list.json` 或 `docs/coding-progress.md`。
+- 如果项目已配置 E2E 工具，L3/L4 场景还应考虑运行 E2E；未运行时记录原因。
 
 如果验收失败，先把失败现象写入 `docs/reports/test-report.md`，再根据日志、截图或手动现象做最小修复，并重新运行同一组验证。只有目标行为实现、验证通过、证据写回 active plan 和 traceability 后，需求才能标记为 `passing`。
 

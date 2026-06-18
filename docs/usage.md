@@ -14,6 +14,18 @@ cd /path/to/project
 
 如果目标项目已有同名文件，生成器会停止并提示冲突文件。确认要重建时再使用 `--force`。
 
+## 可选增强
+
+Flutter 项目可按需生成 Patrol 验收支持；任何项目都可按需生成 CodeGraph 或 Open Design 说明文件。非交互环境建议显式传环境变量，避免默认跳过：
+
+```bash
+AGENT_WORKFLOW_PATROL=yes scripts/generate_workflow.sh /path/to/project --stack flutter
+AGENT_WORKFLOW_CODEGRAPH=yes scripts/generate_workflow.sh /path/to/project --stack node
+AGENT_WORKFLOW_OPENDESIGN=yes scripts/generate_workflow.sh /path/to/project --stack node
+```
+
+Open Design 仅生成 `docs/tools/opendesign.md` 和配置记录。即使启用该文档，agent 也只能在用户明确要求使用 Open Design、生成设计稿/视觉稿或按 Open Design 设计稿生成代码时调用它。
+
 ## 同步已有项目
 
 修改 `agent-workflow-kit` 的模板后，优先用半自动升级脚本同步已有项目。默认 dry-run，只打印计划：
@@ -41,13 +53,22 @@ scripts/upgrade_all_workflows.sh ~/project --stack flutter
 
 半自动模式会更新通用工作流入口、验证说明和失败归因说明，但不会覆盖项目状态、需求、计划、测试证据和项目理解文档。已有的 `.agent/state/current-task.json`、`.agent/traces/README.md`、`docs/coding-progress.md`、`docs/feature_list.json`、`docs/project/`、`docs/requirements/`、`docs/design/`、`docs/exec-plans/`、`docs/reports/test-report.md` 会保留；缺失时才补模板文件。
 
+升级脚本内部会把模板中的项目根目录渲染为真实目标路径，而不是临时生成目录。
+
+升级脚本会刷新 `.gitignore` 中的 `agent-workflow-kit` 忽略块。动态生成的工作流文档目录（如 `docs/requirements/`、`docs/design/`、`docs/exec-plans/`、`docs/reports/`）使用目录级忽略，避免后续新增文档漏出。
+
 ## 轻量运行时状态
 
 生成后的项目包含：
 
 - `.agent/state/current-task.json`：记录当前任务状态、关联需求、设计文档、执行计划、改动文件、验证记录和 blocker。
+- `.agent/config.json`：记录 workflow 版本、技术栈、trace 开关和默认覆盖策略。
 - `.agent/traces/README.md`：说明如何保存轻量任务轨迹。
+- `.agent/traces/schema.json`：约定 Runtime trace 的 JSON 结构。
+- `.agent/evals/README.md`：说明目标项目如何记录专属 eval 或 badcase 复测事实。
 - `docs/process/failure-taxonomy.md`：统一失败归因类型。
+- `docs/process/badcase-analysis.md`：定位 Agent 链路 badcase 的记录流程。
+- `docs/reports/eval-report.md`：目标项目级 eval 和 badcase 回归记录。
 
 `current-task.json` 的 `status` 只允许：
 
@@ -101,7 +122,9 @@ scripts/install_codex_skill.sh
 
 - `docs/index.md`：阅读路由器。
 - `.agent/state/current-task.json`：机器可读的当前任务状态。
+- `.agent/config.json`：机器可读的 workflow 元数据。
 - `.agent/traces/`：轻量任务轨迹。
+- `.agent/evals/`：目标项目级评估说明或本地评估输入。
 - `docs/feature_list.json`：项目级需求索引。
 - `docs/coding-progress.md`：会话级进度日志。
 - `docs/project/`：项目理解、特定规则、限制、验证事实和风险。
@@ -109,5 +132,6 @@ scripts/install_codex_skill.sh
 - `docs/design/`：结合当前项目后的开发文档。
 - `docs/exec-plans/active/`：用户确认后的执行计划和步骤状态。
 - `docs/reports/test-report.md`：测试、失败、修复和复测记录。
+- `docs/reports/eval-report.md`：Agent workflow 评估和 badcase 回归记录。
 
 需求实现时不要把详细步骤写进 `feature_list.json`，也不要把完整计划写进 `coding-progress.md`；它们只负责索引和最近状态。

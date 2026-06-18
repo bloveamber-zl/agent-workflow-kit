@@ -11,6 +11,8 @@ cleanup() {
 trap cleanup EXIT
 
 SKILL_DIR="$KIT_ROOT/skills/agent-workflow"
+KIT_VERSION="$(tr -d '[:space:]' < "$KIT_ROOT/VERSION")"
+TEMPLATE_REVISION="$(tr -d '[:space:]' < "$KIT_ROOT/templates/VERSION")"
 
 echo "==> Validate Codex skill source"
 if [ ! -f "$SKILL_DIR/SKILL.md" ]; then
@@ -36,18 +38,113 @@ if grep -Fq '{{AGENT_WORKFLOW_KIT_ROOT}}' "$INSTALLED_SKILL"; then
 fi
 
 grep -Fq "$KIT_ROOT" "$INSTALLED_SKILL"
+grep -Fq 'python3 -m runtime.cli run' "$INSTALLED_SKILL"
+grep -Fq '.agent/config.json' "$INSTALLED_SKILL"
+grep -Fq 'scripts/run_eval.sh' "$INSTALLED_SKILL"
+grep -Fq 'L0-L4' "$INSTALLED_SKILL"
+grep -Fq 'test-case self-validation' "$INSTALLED_SKILL"
+grep -Fq 'AGENT_WORKFLOW_PATROL' "$INSTALLED_SKILL"
+grep -Fq 'AGENT_WORKFLOW_CODEGRAPH' "$INSTALLED_SKILL"
+grep -Fq 'AGENT_WORKFLOW_OPENDESIGN' "$INSTALLED_SKILL"
+grep -Fq 'After changing agent-workflow-kit, decide whether the installed skill must be refreshed' "$INSTALLED_SKILL"
+
+echo "==> Run runtime unit tests"
+cd "$KIT_ROOT"
+python3 -m unittest tests.runtime.test_runtime_mvp
+python3 -m unittest tests.runtime.test_planning_components
+python3 -m unittest tests.runtime.test_eval_runner
+scripts/run_eval.sh
 
 for stack_file in "$KIT_ROOT"/templates/stacks/*.yaml; do
   stack="$(basename "$stack_file" .yaml)"
   target="$TMP_ROOT/$stack-project"
   mkdir -p "$target"
+  case "$stack" in
+    flutter)
+      mkdir -p "$target/android" "$target/ios" "$target/lib" "$target/test"
+      printf '%s\n' 'name: flutter_project' > "$target/pubspec.yaml"
+      ;;
+    node)
+      mkdir -p "$target/src" "$target/public"
+      printf '%s\n' '{"name":"node-project"}' > "$target/package.json"
+      ;;
+    python)
+      mkdir -p "$target/src" "$target/test"
+      printf '%s\n' '[project]' 'name = "python-project"' > "$target/pyproject.toml"
+      ;;
+  esac
+  printf '%s\n' "# $stack-project" > "$target/README.md"
 
   echo "==> Generate stack: $stack"
   "$KIT_ROOT/scripts/generate_workflow.sh" "$target" --stack "$stack" --project-name "$stack-project"
   test -f "$target/.agent/state/current-task.json"
+  test -f "$target/.agent/config.json"
   test -f "$target/.agent/traces/README.md"
+  test -f "$target/.agent/traces/schema.json"
+  test -f "$target/.agent/evals/README.md"
+  test -f "$target/docs/process/badcase-analysis.md"
   test -f "$target/docs/process/failure-taxonomy.md"
+  test -f "$target/docs/reports/eval-report.md"
+  grep -q '初始化自动侦察' "$target/docs/project/structure/overview.md"
+  grep -q '初始化自动侦察' "$target/docs/project/structure/architecture.md"
+  grep -q '初始化自动侦察' "$target/docs/project/features/overview.md"
+  grep -q '初始化自动侦察' "$target/docs/project/frontend.md"
+  grep -q '初始化自动侦察' "$target/docs/project/constraints.md"
+  grep -q 'README.md' "$target/docs/project/structure/overview.md"
+  if [ "$stack" = "flutter" ]; then
+    grep -q 'Android、iOS' "$target/docs/project/structure/overview.md"
+  fi
+  grep -q 'BEGIN agent-workflow-kit' "$target/.gitignore"
+  grep -q '/.agent/' "$target/.gitignore"
+  grep -q '/docs/requirements/' "$target/.gitignore"
+  grep -q '/docs/design/' "$target/.gitignore"
+  grep -q '/docs/exec-plans/' "$target/.gitignore"
+  if grep -q '/docs/design/workflow-bootstrap.md' "$target/.gitignore"; then
+    echo "Generated .gitignore should ignore workflow document directories, not individual dynamic docs." >&2
+    exit 1
+  fi
+  python3 - "$target/.agent/config.json" "$KIT_VERSION" "$TEMPLATE_REVISION" <<'PY'
+import json
+import sys
+
+path, expected_kit_version, expected_template_revision = sys.argv[1:4]
+with open(path, encoding="utf-8") as f:
+    data = json.load(f)
+
+if data.get("kit_version") != expected_kit_version:
+    print("Generated config has stale kit_version", file=sys.stderr)
+    sys.exit(1)
+if data.get("template_revision") != expected_template_revision:
+    print("Generated config has stale template_revision", file=sys.stderr)
+    sys.exit(1)
+enhancements = data.get("enhancements", {})
+if enhancements.get("patrol") is not False:
+    print("Default generation should leave patrol disabled", file=sys.stderr)
+    sys.exit(1)
+if enhancements.get("codegraph") is not False:
+    print("Default generation should leave codegraph disabled", file=sys.stderr)
+    sys.exit(1)
+if enhancements.get("opendesign") is not False:
+    print("Default generation should leave opendesign disabled", file=sys.stderr)
+    sys.exit(1)
+PY
+  grep -q 'L0' "$target/docs/process/verification.md"
+  grep -q 'L4' "$target/docs/process/verification.md"
+  grep -q '场景触发增强' "$target/docs/process/verification.md"
+  grep -q '测试用例自验证' "$target/docs/process/verification.md"
+  grep -q '验收等级' "$target/docs/reports/test-report.md"
+  grep -q '增强触发' "$target/docs/reports/test-report.md"
+  grep -q '证据类型' "$target/docs/reports/test-report.md"
+  grep -q '验收等级' "$target/docs/requirements/traceability.md"
+  grep -q '增强触发' "$target/docs/requirements/traceability.md"
   "$KIT_ROOT/scripts/validate_target.sh" "$target"
+
+  echo "==> Verify acceptance evidence dry-run: $stack"
+  ACCEPTANCE_DRY_RUN=1 ACCEPTANCE_SCENARIO="startup-smoke" ACCEPTANCE_EXPECTED_PATH="打开应用首页" "$target/scripts/acceptance_simulator.sh" >/dev/null
+  evidence_file="$(find "$target/.dart_tool/acceptance" -name evidence.json | sort | tail -n 1)"
+  test -f "$evidence_file"
+  grep -q '"status": "dry-run"' "$evidence_file"
+  grep -q '"scenario": "startup-smoke"' "$evidence_file"
 
   echo "==> Verify task state validation: $stack"
   cp "$target/.agent/state/current-task.json" "$TMP_ROOT/current-task.$stack.json"
@@ -78,6 +175,49 @@ PY
   "$KIT_ROOT/scripts/validate_target.sh" "$target" >/dev/null
 done
 
+echo "==> Verify optional Flutter Patrol workflow prompt path"
+patrol_target="$TMP_ROOT/patrol-project"
+mkdir -p "$patrol_target"
+cat > "$patrol_target/pubspec.yaml" <<'YAML'
+name: patrol_project
+description: Patrol workflow fixture
+environment:
+  sdk: ^3.8.0
+dependencies:
+  flutter:
+    sdk: flutter
+YAML
+AGENT_WORKFLOW_PATROL=yes "$KIT_ROOT/scripts/generate_workflow.sh" "$patrol_target" --stack flutter --project-name patrol-project > "$TMP_ROOT/patrol-generate.log"
+grep -q 'Patrol' "$TMP_ROOT/patrol-generate.log"
+test -f "$patrol_target/docs/testing/patrol.md"
+test -f "$patrol_target/scripts/patrol_acceptance.sh"
+grep -q 'patrol test' "$patrol_target/docs/testing/patrol.md"
+grep -q 'patrol test' "$patrol_target/scripts/patrol_acceptance.sh"
+grep -q '"patrol": true' "$patrol_target/.agent/config.json"
+"$KIT_ROOT/scripts/validate_target.sh" "$patrol_target" >/dev/null
+
+echo "==> Verify optional CodeGraph workflow prompt path"
+codegraph_target="$TMP_ROOT/codegraph-project"
+mkdir -p "$codegraph_target"
+printf '%s\n' '{"name":"codegraph-project"}' > "$codegraph_target/package.json"
+AGENT_WORKFLOW_CODEGRAPH=yes "$KIT_ROOT/scripts/generate_workflow.sh" "$codegraph_target" --stack node --project-name codegraph-project > "$TMP_ROOT/codegraph-generate.log"
+grep -q 'CodeGraph' "$TMP_ROOT/codegraph-generate.log"
+test -f "$codegraph_target/docs/tools/codegraph.md"
+grep -q 'codegraph init -i' "$codegraph_target/docs/tools/codegraph.md"
+grep -q '"codegraph": true' "$codegraph_target/.agent/config.json"
+"$KIT_ROOT/scripts/validate_target.sh" "$codegraph_target" >/dev/null
+
+echo "==> Verify optional Open Design workflow prompt path"
+opendesign_target="$TMP_ROOT/opendesign-project"
+mkdir -p "$opendesign_target"
+printf '%s\n' '{"name":"opendesign-project"}' > "$opendesign_target/package.json"
+AGENT_WORKFLOW_OPENDESIGN=yes "$KIT_ROOT/scripts/generate_workflow.sh" "$opendesign_target" --stack node --project-name opendesign-project > "$TMP_ROOT/opendesign-generate.log"
+grep -q 'Open Design' "$TMP_ROOT/opendesign-generate.log"
+test -f "$opendesign_target/docs/tools/opendesign.md"
+grep -q '用户明确要求' "$opendesign_target/docs/tools/opendesign.md"
+grep -q '"opendesign": true' "$opendesign_target/.agent/config.json"
+"$KIT_ROOT/scripts/validate_target.sh" "$opendesign_target" >/dev/null
+
 echo "==> Verify workflow upgrade dry-run and apply"
 upgrade_target="$TMP_ROOT/upgrade-project"
 mkdir -p "$upgrade_target"
@@ -86,6 +226,30 @@ mkdir -p "$upgrade_target"
 printf '%s\n' 'custom progress must stay' > "$upgrade_target/docs/coding-progress.md"
 printf '%s\n' 'old common index' > "$upgrade_target/docs/index.md"
 printf '%s\n' 'old acceptance script' > "$upgrade_target/scripts/acceptance_simulator.sh"
+cat > "$upgrade_target/.gitignore" <<'EOF'
+# BEGIN agent-workflow-kit
+# Generated agent workflow files
+/.agent/
+/docs/design/workflow-bootstrap.md
+/docs/requirements/traceability.md
+# END agent-workflow-kit
+EOF
+python3 - "$upgrade_target/.agent/config.json" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, encoding="utf-8") as f:
+    data = json.load(f)
+
+data["kit_version"] = "0.0.0"
+data["template_revision"] = "2000-01-01"
+data["local_config_must_stay"] = "preserved"
+
+with open(path, "w", encoding="utf-8") as f:
+    json.dump(data, f, ensure_ascii=False, indent=2)
+    f.write("\n")
+PY
 
 "$KIT_ROOT/scripts/upgrade_workflow.sh" "$upgrade_target" --stack flutter > "$TMP_ROOT/upgrade-dry-run.log"
 grep -q 'DRY-RUN' "$TMP_ROOT/upgrade-dry-run.log"
@@ -93,21 +257,70 @@ grep -q 'update docs/index.md' "$TMP_ROOT/upgrade-dry-run.log"
 grep -q 'update scripts/acceptance_simulator.sh' "$TMP_ROOT/upgrade-dry-run.log"
 grep -q 'old common index' "$upgrade_target/docs/index.md"
 
-"$KIT_ROOT/scripts/upgrade_workflow.sh" "$upgrade_target" --stack flutter --apply > "$TMP_ROOT/upgrade-apply.log"
+AGENT_WORKFLOW_CODEGRAPH=yes AGENT_WORKFLOW_OPENDESIGN=yes "$KIT_ROOT/scripts/upgrade_workflow.sh" "$upgrade_target" --stack flutter --apply > "$TMP_ROOT/upgrade-apply.log"
 grep -q 'APPLY' "$TMP_ROOT/upgrade-apply.log"
+grep -q 'gitignore workflow ignore block' "$TMP_ROOT/upgrade-apply.log"
+grep -q 'CodeGraph: yes' "$TMP_ROOT/upgrade-apply.log"
+grep -q 'Open Design: yes' "$TMP_ROOT/upgrade-apply.log"
 grep -q 'dokichat\|upgrade-project' "$upgrade_target/docs/index.md"
+upgrade_target_root="$(cd "$upgrade_target" && pwd)"
+grep -Fq "$upgrade_target_root" "$upgrade_target/AGENTS.md"
+grep -q 'BEGIN agent-workflow-kit' "$upgrade_target/.gitignore"
+grep -q '/docs/design/' "$upgrade_target/.gitignore"
+grep -q '/docs/requirements/' "$upgrade_target/.gitignore"
+if grep -q '/docs/design/workflow-bootstrap.md' "$upgrade_target/.gitignore"; then
+  echo "Upgrade should replace stale file-level workflow document ignore rules." >&2
+  exit 1
+fi
+test -f "$upgrade_target/docs/tools/codegraph.md"
+test -f "$upgrade_target/docs/tools/opendesign.md"
+python3 - "$upgrade_target/.agent/config.json" "$KIT_VERSION" "$TEMPLATE_REVISION" <<'PY'
+import json
+import sys
+
+path, expected_kit_version, expected_template_revision = sys.argv[1:4]
+with open(path, encoding="utf-8") as f:
+    data = json.load(f)
+
+if data.get("kit_version") != expected_kit_version:
+    print("Upgrade did not refresh kit_version", file=sys.stderr)
+    sys.exit(1)
+if data.get("template_revision") != expected_template_revision:
+    print("Upgrade did not refresh template_revision", file=sys.stderr)
+    sys.exit(1)
+if data.get("enhancements", {}).get("codegraph") is not True:
+    print("Upgrade did not enable codegraph enhancement", file=sys.stderr)
+    sys.exit(1)
+if data.get("enhancements", {}).get("opendesign") is not True:
+    print("Upgrade did not enable opendesign enhancement", file=sys.stderr)
+    sys.exit(1)
+if data.get("local_config_must_stay") != "preserved":
+    print("Upgrade should preserve local config fields", file=sys.stderr)
+    sys.exit(1)
+PY
 grep -q 'custom progress must stay' "$upgrade_target/docs/coding-progress.md"
 "$KIT_ROOT/scripts/validate_target.sh" "$upgrade_target" >/dev/null
+AGENT_WORKFLOW_CODEGRAPH=yes AGENT_WORKFLOW_OPENDESIGN=yes "$KIT_ROOT/scripts/upgrade_workflow.sh" "$upgrade_target" --stack flutter > "$TMP_ROOT/upgrade-after-apply-dry-run.log"
+if grep -q 'refresh .agent/config.json version metadata' "$TMP_ROOT/upgrade-after-apply-dry-run.log"; then
+  echo "Upgrade should not refresh config metadata when version and enhancement fields are current." >&2
+  exit 1
+fi
 
 echo "==> Verify workflow upgrade adds missing generated files"
 rm "$upgrade_target/docs/acceptance_simulator.md"
 rm -rf "$upgrade_target/.agent"
 rm "$upgrade_target/docs/process/failure-taxonomy.md"
+rm "$upgrade_target/docs/reports/eval-report.md"
 "$KIT_ROOT/scripts/upgrade_workflow.sh" "$upgrade_target" --stack flutter --apply >/dev/null
 test -f "$upgrade_target/docs/acceptance_simulator.md"
 test -f "$upgrade_target/.agent/state/current-task.json"
+test -f "$upgrade_target/.agent/config.json"
 test -f "$upgrade_target/.agent/traces/README.md"
+test -f "$upgrade_target/.agent/traces/schema.json"
+test -f "$upgrade_target/.agent/evals/README.md"
 test -f "$upgrade_target/docs/process/failure-taxonomy.md"
+test -f "$upgrade_target/docs/process/badcase-analysis.md"
+test -f "$upgrade_target/docs/reports/eval-report.md"
 "$KIT_ROOT/scripts/validate_target.sh" "$upgrade_target" >/dev/null
 
 echo "==> Verify batch workflow upgrade scan"

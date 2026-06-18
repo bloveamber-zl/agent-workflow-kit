@@ -1,0 +1,25 @@
+# Eval Report
+
+本文件记录目标项目级 Agent workflow 评估结果。通用评估集和脚本由 `agent-workflow-kit` 维护；目标项目只记录与本项目相关的评估事实和 badcase 复测结论。
+
+## 最近结果
+
+| 日期 | 命令 | 结果 | 说明 |
+| --- | --- | --- | --- |
+| {{CURRENT_DATE}} | 未运行 | pending | 初始模板占位，等待真实评估。 |
+
+## 指标
+
+- Intent accuracy：未统计
+- Stack detection accuracy：未统计
+- Slot filling accuracy：未统计
+- Generation success rate：未统计
+- Validation pass rate：未统计
+- Overwrite protection pass rate：未统计
+- Regression count：未统计
+
+## Badcase 复测
+
+| Case ID | 失败节点 | 修复方式 | 回归结果 | 证据 |
+| --- | --- | --- | --- | --- |
+| 暂无 | - | - | - | - |

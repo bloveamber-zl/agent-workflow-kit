@@ -1,0 +1,46 @@
+# Flutter Patrol 验收
+
+## 什么时候读
+
+Flutter 项目进入 L3/L4 验收，且需求涉及权限、通知、相册、文件、录音、定位、WebView、OAuth、支付或跨 App 链路时读取。
+
+## 当前状态
+
+- E2E 工具：{{E2E_TOOL_NAME}}
+- 推荐命令：`{{E2E_TEST_COMMAND}}`
+- 说明：{{E2E_SETUP_NOTE}}
+
+## 接入检查
+
+运行前先确认：
+
+- `pubspec.yaml` 已包含 `patrol` 开发依赖。
+- `pubspec.yaml` 已配置 `patrol:` 的 `app_name`、Android `package_name`、iOS/macOS `bundle_id`。
+- 本机可执行 `patrol doctor`。
+- 测试目录存在，默认是 `patrol_test/`。
+
+如果以上条件不满足，不要把 Patrol 标记为已覆盖；改用 `scripts/acceptance_simulator.sh` 做本地/模拟器验收，并在 `docs/reports/test-report.md` 记录 Patrol 未覆盖原因。
+
+## 推荐命令
+
+```bash
+patrol doctor
+scripts/patrol_acceptance.sh
+```
+
+可指定场景：
+
+```bash
+PATROL_SCENARIO='权限弹窗验收' scripts/patrol_acceptance.sh
+```
+
+## 证据要求
+
+Patrol 通过后，把以下信息写回 active plan、`docs/requirements/traceability.md` 和 `docs/reports/test-report.md`：
+
+- 验收等级：L3 或 L4
+- 命令：`scripts/patrol_acceptance.sh`
+- 场景：实际关键路径
+- 结果：通过 / 失败 / blocker
+- 证据：日志路径、测试文件、失败截图或 CI 报告
+

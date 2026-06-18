@@ -1,0 +1,31 @@
+# Badcase 分析流程
+
+当 Agent 执行结果与预期不一致时，先记录事实，再决定修复位置。不要只凭最终输出判断原因。
+
+## 记录字段
+
+- Case ID：
+- 用户输入：
+- 期望结果：
+- 实际结果：
+- 失败节点：`router` / `context_builder` / `planner` / `skill_selector` / `executor` / `validator` / `reporter`
+- 根因分类：规则缺失 / Prompt 不稳 / 上下文不足 / 脚本失败 / 校验不足 / 用户信息缺失
+- 修复方式：规则 / Prompt / 代码 / 文档 / eval case
+- 回归验证：
+
+## 定位顺序
+
+1. 检查 `.agent/traces/` 中最近一次 trace，确认最早失败节点。
+2. 对比该节点输入、输出和期望行为。
+3. 如果是意图或路由错误，补 router 或 query rewrite case。
+4. 如果是计划漏步骤，补 planner case。
+5. 如果是脚本失败，记录命令、退出码和 stderr 摘要。
+6. 如果是校验没发现问题，补 validator 规则和 eval case。
+7. 修复后运行对应验证，并把结果写入 `docs/reports/eval-report.md` 或 `docs/reports/test-report.md`。
+
+## 原则
+
+- 先加可复现 case，再改规则或 Prompt。
+- 不用单个 badcase 牺牲已有通过场景。
+- 能用确定性规则解决的问题，不优先交给模型。
+- 无法继续时，把 blocker、证据和下一步写清楚。

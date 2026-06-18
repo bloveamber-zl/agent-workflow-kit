@@ -1,0 +1,49 @@
+# CodeGraph 可选增强
+
+## 什么时候读
+
+需要做项目侦察、影响范围判断、受影响测试选择、架构巡检或复杂失败诊断时读取。
+
+## 定位
+
+CodeGraph 是可选代码智能增强，不是本工作流的基础依赖。没有配置 CodeGraph 时，继续使用 `rg`、项目测试和现有验证流程；不要因为缺少 CodeGraph 阻塞需求。
+
+## 安装与初始化
+
+安装前先获得用户确认。不要静默安装新工具。
+
+```bash
+# 任选一种安装方式，按项目和机器环境决定
+npm i -g @colbymchenry/codegraph
+
+# 或使用官方安装脚本
+curl -fsSL https://raw.githubusercontent.com/colbymchenry/codegraph/main/install.sh | sh
+```
+
+连接到支持 MCP 的 Agent 后，在目标项目初始化索引：
+
+```bash
+codegraph init -i
+```
+
+## 使用规则
+
+- 项目侦察：如果 `.codegraph/` 存在且 MCP 可用，优先用 CodeGraph 查入口、调用关系和模块影响。
+- 实现前：跨模块或高风险改动先做 impact/affected 分析，再决定验收等级。
+- 验收前：可用 `codegraph affected` 辅助选择局部测试；L3/L4 仍需按 `docs/process/verification.md` 补本地/模拟器、E2E、Patrol 或 CI 证据。
+- 失败诊断：多轮失败、影响半径不清或调用链复杂时，CodeGraph 可作为诊断增强。
+
+## 不能做的事
+
+- 不要把 CodeGraph 结果当成唯一事实；动态注册、反射、运行时配置和外部服务仍要靠真实验证。
+- 不要默认运行全量索引或安装命令；成本、网络和本机权限要由用户确认。
+- 不要把没有配置 CodeGraph 记为失败；只记录未覆盖风险或跳过原因。
+
+## 证据记录
+
+使用 CodeGraph 时，把以下信息写入 active plan、`docs/requirements/traceability.md` 或 `docs/reports/test-report.md`：
+
+- 使用的命令或 MCP 工具
+- 影响范围结论
+- 选择或跳过的测试
+- 未覆盖风险

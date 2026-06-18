@@ -6,3 +6,6 @@ start_command: python3 main.py
 dependency_sync_command: python3 -m pip install -r requirements.txt
 build_docs: 构建或发布前优先查看 pyproject.toml、setup.cfg、requirements.txt 和 docs/build.md；不要默认上传包。
 lightweight_validation_note: Python 默认用 compileall 做轻量语法验证；如果项目使用 pytest，再运行 VERIFY_MODE=test ./init.sh。
+e2e_tool_name: 项目自定义
+e2e_test_command: __SKIP__
+e2e_setup_note: Python 项目如需 E2E，请按项目实际服务入口配置接口验收、CLI 验收或浏览器自动化。

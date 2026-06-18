@@ -1,0 +1,10 @@
+{
+  "id": "upgrade_existing_workflow",
+  "input": "把这个项目同步到最新版 workflow",
+  "fixture": "workflow_project",
+  "expected": {
+    "intent": "upgrade_workflow",
+    "stack": "node",
+    "requires_user_input": false
+  }
+}

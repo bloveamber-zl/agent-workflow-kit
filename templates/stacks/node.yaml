@@ -6,3 +6,6 @@ start_command: npm run dev --if-present
 dependency_sync_command: npm install
 build_docs: 构建或发布前优先查看 package.json scripts 和 docs/build.md；不要默认运行生产发布命令。
 lightweight_validation_note: Node 默认只运行 npm script 中已存在的 lint/test/dev 命令；不存在时 npm 会跳过。
+e2e_tool_name: 项目自定义
+e2e_test_command: __SKIP__
+e2e_setup_note: Node 项目如需 E2E，请按项目实际工具配置 Playwright、Cypress 或接口验收脚本。

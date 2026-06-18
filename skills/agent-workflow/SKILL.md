@@ -15,6 +15,28 @@ The generated workflow is demand-driven:
 requirements intake -> project reconnaissance -> design doc -> exec plan -> user approval -> implementation -> requirement-based verification -> fix/retest loop -> status handoff
 ```
 
+Current generated targets use Workflow V2 metadata:
+
+```text
+.agent/config.json -> workflow version, template revision, kit version, stack, trace and overwrite policy
+.agent/traces/schema.json -> node-level Runtime trace schema
+.agent/evals/README.md -> target-level eval guidance
+docs/process/badcase-analysis.md -> Agent-chain badcase workflow
+docs/reports/eval-report.md -> eval and badcase regression evidence
+docs/process/verification.md -> L0-L4 acceptance routing, test-case self-validation and evidence rules
+scripts/acceptance_simulator.sh -> local/simulator acceptance with evidence.json
+```
+
+`AGENTS.md` is intentionally a slim entry and routing layer. Keep detailed document maps, verification policy, failure taxonomy, badcase workflow, project constraints, execution plans and evidence in `docs/`; do not expand `AGENTS.md` back into a full handbook.
+
+The kit also includes a local lightweight Runtime:
+
+```bash
+python3 -m runtime.cli run "给这个项目生成 agent workflow" --target /path/to/project
+```
+
+The Runtime routes natural-language requests, detects project stack and workflow state, calls the existing scripts, validates the target, and writes trace files. Use the Runtime when the user asks for natural-language initialization or when intent routing/trace evidence is useful. Use the lower-level scripts when the user gives exact stack/path details or wants a deterministic command.
+
 Default kit root after installation:
 
 ```text
@@ -38,9 +60,11 @@ If that path is unavailable, check `AGENT_WORKFLOW_KIT_ROOT`, then ask the user 
      - `scripts/install_codex_skill.sh`
      - `scripts/upgrade_workflow.sh`
      - `scripts/upgrade_all_workflows.sh`
+     - `scripts/run_eval.sh`
+   - If using Runtime, verify `runtime/cli.py` exists.
 
 3. Decide the operation:
-   - If `.agent/state/current-task.json`, `.agent/traces/README.md`, `AGENTS.md`, `init.sh`, `docs/feature_list.json`, `docs/verification.md`, `docs/process/verification.md`, `docs/process/failure-taxonomy.md`, `docs/acceptance_simulator.md`, `docs/project/structure/overview.md`, `docs/project/features/overview.md`, `docs/requirements/parsed-requirements.md`, `docs/design/index.md`, `docs/exec-plans/active/index.md`, `docs/reports/test-report.md`, or `scripts/acceptance_simulator.sh` is missing, generate the workflow for a new target or optimize the existing workflow in place.
+   - If `.agent/state/current-task.json`, `.agent/config.json`, `.agent/traces/README.md`, `.agent/traces/schema.json`, `.agent/evals/README.md`, `AGENTS.md`, `init.sh`, `docs/feature_list.json`, `docs/verification.md`, `docs/process/verification.md`, `docs/process/failure-taxonomy.md`, `docs/process/badcase-analysis.md`, `docs/acceptance_simulator.md`, `docs/project/structure/overview.md`, `docs/project/features/overview.md`, `docs/requirements/parsed-requirements.md`, `docs/design/index.md`, `docs/exec-plans/active/index.md`, `docs/reports/eval-report.md`, `docs/reports/test-report.md`, or `scripts/acceptance_simulator.sh` is missing, generate the workflow for a new target or optimize the existing workflow in place.
    - If workflow files already exist, optimize in place after reading them.
    - Never use `--force` unless the user explicitly asks to overwrite generated workflow files.
 
@@ -58,6 +82,43 @@ If that path is unavailable, check `AGENT_WORKFLOW_KIT_ROOT`, then ask the user 
 
 Replace paths and stack with the actual values. If generation stops because files already exist, switch to the optimization workflow unless the user requested `--force`.
 
+For Flutter targets, generation may ask whether to generate Patrol acceptance support. Use the interactive default when working directly with the user. In non-interactive automation, set the environment explicitly:
+
+```bash
+AGENT_WORKFLOW_PATROL=ask "/path/to/agent-workflow-kit/scripts/generate_workflow.sh" "/path/to/target" --stack flutter
+AGENT_WORKFLOW_PATROL=yes "/path/to/agent-workflow-kit/scripts/generate_workflow.sh" "/path/to/target" --stack flutter
+AGENT_WORKFLOW_PATROL=no "/path/to/agent-workflow-kit/scripts/generate_workflow.sh" "/path/to/target" --stack flutter
+```
+
+`yes` generates `docs/testing/patrol.md` and `scripts/patrol_acceptance.sh`. It does not silently install dependencies or edit native project settings; the target project must still pass the Patrol setup checks recorded in the generated docs.
+
+Generation may also ask whether to generate CodeGraph optional support. It only writes `docs/tools/codegraph.md` and records the status in `.agent/config.json`; it does not install CodeGraph or build an index silently. In non-interactive automation, set the environment explicitly:
+
+```bash
+AGENT_WORKFLOW_CODEGRAPH=ask "/path/to/agent-workflow-kit/scripts/generate_workflow.sh" "/path/to/target" --stack node
+AGENT_WORKFLOW_CODEGRAPH=yes "/path/to/agent-workflow-kit/scripts/generate_workflow.sh" "/path/to/target" --stack node
+AGENT_WORKFLOW_CODEGRAPH=no "/path/to/agent-workflow-kit/scripts/generate_workflow.sh" "/path/to/target" --stack node
+```
+
+Generation may also ask whether to generate Open Design optional support. It only writes `docs/tools/opendesign.md` and records the status in `.agent/config.json`; Open Design must still be used only when the user explicitly requests Open Design, a design mockup, or code from an Open Design artifact. In non-interactive automation, set the environment explicitly:
+
+```bash
+AGENT_WORKFLOW_OPENDESIGN=ask "/path/to/agent-workflow-kit/scripts/generate_workflow.sh" "/path/to/target" --stack node
+AGENT_WORKFLOW_OPENDESIGN=yes "/path/to/agent-workflow-kit/scripts/generate_workflow.sh" "/path/to/target" --stack node
+AGENT_WORKFLOW_OPENDESIGN=no "/path/to/agent-workflow-kit/scripts/generate_workflow.sh" "/path/to/target" --stack node
+```
+
+When using this skill from a chat environment, ask the user about optional Patrol, CodeGraph and Open Design support before invoking generation or upgrade, then pass `AGENT_WORKFLOW_PATROL=yes|no`, `AGENT_WORKFLOW_CODEGRAPH=yes|no` and `AGENT_WORKFLOW_OPENDESIGN=yes|no` so non-TTY script execution does not silently skip the optional prompts.
+
+Alternative natural-language Runtime initialization:
+
+```bash
+cd "/path/to/agent-workflow-kit"
+python3 -m runtime.cli run "给这个项目生成 agent workflow" --target "/path/to/target"
+```
+
+Use this path when automatic intent routing, stack detection, validation and trace output are desired. If Runtime returns a failed result, inspect its report and the generated `.agent/traces/*.json`, then either fix the target workflow or fall back to the lower-level scripts.
+
 6. Upgrade existing workflow from current templates:
    - If the user asks to sync or upgrade an existing project from the latest kit templates, run a dry-run first:
 
@@ -72,6 +133,10 @@ Replace paths and stack with the actual values. If generation stops because file
 "/path/to/agent-workflow-kit/scripts/upgrade_workflow.sh" "/path/to/target" --stack flutter --apply
 ```
 
+   - Flutter upgrades may ask whether to generate or refresh Patrol acceptance support. Use `AGENT_WORKFLOW_PATROL=yes|no` for deterministic automation.
+   - Upgrades may ask whether to generate or refresh CodeGraph optional support. Use `AGENT_WORKFLOW_CODEGRAPH=yes|no` for deterministic automation.
+   - Upgrades may ask whether to generate or refresh Open Design optional support. Use `AGENT_WORKFLOW_OPENDESIGN=yes|no` for deterministic automation.
+
    - For many local projects, default to scanning `~/project` and dry-run first:
 
 ```bash
@@ -84,17 +149,29 @@ Replace paths and stack with the actual values. If generation stops because file
 "/path/to/agent-workflow-kit/scripts/upgrade_all_workflows.sh" "$HOME/project" --apply
 ```
 
-   - The upgrade scripts refresh common workflow entrypoints, validation docs, and failure taxonomy docs, but only add missing state files. They must not overwrite existing `.agent/state/current-task.json`, `.agent/traces/README.md`, `docs/coding-progress.md`, `docs/feature_list.json`, `docs/project/`, `docs/requirements/`, `docs/design/`, `docs/exec-plans/`, or `docs/reports/test-report.md` content.
+   - The upgrade scripts refresh common workflow entrypoints, validation docs, failure taxonomy docs, and `scripts/acceptance_simulator.sh`, but only add missing state, trace, eval and project-adapted files. They must not overwrite existing `.agent/state/current-task.json`, `.agent/config.json`, `.agent/traces/`, `.agent/evals/`, `docs/coding-progress.md`, `docs/feature_list.json`, `docs/project/`, `docs/requirements/`, `docs/design/`, `docs/exec-plans/`, or `docs/reports/` content.
+   - If Patrol support is enabled, `docs/testing/patrol.md` and `scripts/patrol_acceptance.sh` are generated or refreshed as workflow support files.
+   - If CodeGraph support is enabled, `docs/tools/codegraph.md` is generated or refreshed as a workflow support file.
+   - If Open Design support is enabled, `docs/tools/opendesign.md` is generated or refreshed as a workflow support file. The generated workflow must still call Open Design only after the user explicitly asks for it.
 
 7. Optimize existing workflow:
-   - Read current `.agent/state/current-task.json`, `.agent/traces/README.md`, `AGENTS.md`, `init.sh`, `docs/index.md`, `docs/verification.md`, `docs/process/verification.md`, `docs/process/failure-taxonomy.md`, `docs/acceptance_simulator.md`, `docs/coding-progress.md`, `docs/feature_list.json`, `docs/session-handoff.md`, `docs/project/*`, `docs/requirements/*`, `docs/design/index.md`, `docs/exec-plans/active/index.md`, `docs/exec-plans/tech-debt-tracker.md`, `docs/reports/test-report.md`, and `scripts/acceptance_simulator.sh` when present.
+   - Read current `.agent/state/current-task.json`, `.agent/config.json`, `.agent/traces/README.md`, `.agent/traces/schema.json`, `.agent/evals/README.md`, `AGENTS.md`, `init.sh`, `docs/index.md`, `docs/verification.md`, `docs/process/verification.md`, `docs/process/failure-taxonomy.md`, `docs/process/badcase-analysis.md`, `docs/acceptance_simulator.md`, `docs/testing/patrol.md`, `docs/tools/codegraph.md`, `docs/tools/opendesign.md`, `docs/coding-progress.md`, `docs/feature_list.json`, `docs/session-handoff.md`, `docs/project/*`, `docs/requirements/*`, `docs/design/index.md`, `docs/exec-plans/active/index.md`, `docs/exec-plans/tech-debt-tracker.md`, `docs/reports/eval-report.md`, `docs/reports/test-report.md`, `scripts/acceptance_simulator.sh`, and `scripts/patrol_acceptance.sh` when present.
    - Preserve project-specific instructions, build notes, private constraints, and verification commands.
+   - Keep `AGENTS.md` concise: project context, startup entry, hard rules, workflow summary, verification entry and handoff summary only.
    - Keep common workflow guidance generic; do not hard-code one business project's rules into reusable templates.
    - Prefer narrow edits: fix missing files, unresolved placeholders, stale commands, invalid JSON, weak verification notes, missing acceptance guidance, missing requirement traceability, missing project constraints, or missing active plan status.
    - Keep `docs/feature_list.json` as a project-level requirement index only; detailed steps belong in `docs/exec-plans/active/*.md`.
    - Keep `docs/coding-progress.md` as a session-level progress log only; full plans and evidence belong in active plans, traceability, and test reports.
    - Keep `.agent/state/current-task.json` as machine-readable current task state only; full plans and evidence belong in active plans, traceability, and test reports.
+   - Keep `.agent/config.json` as machine-readable workflow metadata only; project rules belong in `docs/project/constraints.md`.
    - Use `docs/process/failure-taxonomy.md` when verification fails or the task is blocked, and record the failure type with evidence.
+   - Use `docs/process/badcase-analysis.md` when Runtime, Router, Planner, Validator or Skill selection behavior is wrong; record eval or replay evidence in `docs/reports/eval-report.md`.
+   - Use `docs/process/verification.md` to classify each requirement into L0-L4 before verification. Record acceptance level, reasoning, confidence, selected commands and uncovered risks in active plans, `docs/requirements/traceability.md`, and `docs/reports/test-report.md`.
+   - Keep enhancement modules scenario-triggered: requirement grilling, PRD synthesis, issue slicing, TDD, diagnosis, architecture review, E2E/Patrol and handoff should run only when their trigger conditions are met, with trigger or skip reasons recorded.
+   - When tests are generated from requirements or uncommitted code, perform test-case self-validation first: the test must run, contain meaningful assertions, map to a requirement or reproduction path, and be reusable as a regression case.
+   - For Flutter L3/L4 work, consider Patrol when it is configured. If Patrol is not configured or cannot run, record the fallback acceptance path and uncovered Patrol risk instead of claiming E2E coverage.
+   - For projects with CodeGraph configured, consider it during project reconnaissance, impact analysis, affected-test selection and complex diagnosis. If CodeGraph is not configured or unavailable, continue with standard repository search and record the skip reason only when the risk requires it.
+   - For projects with Open Design configured, use it only when the user explicitly asks for Open Design, design mockups, or code from an Open Design artifact. Record the trigger phrase and artifact evidence in the active plan.
    - Put project-specific rules and limitations in `docs/project/constraints.md`; only summarize the most critical hard rules in `AGENTS.md`.
    - Ensure `docs/project/constraints.md` includes the coding convention that new methods and variables should have comments explaining purpose or business meaning, while simple local temporaries may omit comments when readability is clear.
 
@@ -105,6 +182,14 @@ Replace paths and stack with the actual values. If generation stops because file
 ```
 
 For generated or modified targets, run validation and report the result. Do not run full builds, signing, publishing, or expensive Xcode builds unless explicitly requested.
+
+9. Optional local kit eval:
+
+```bash
+"/path/to/agent-workflow-kit/scripts/run_eval.sh"
+```
+
+Run this after changing Runtime routing, Query Rewriter, Planner, Skill Selector, Prompt Registry, eval cases, or generated workflow behavior. It is a kit-level regression check, not a target project build.
 
 ## Updating This Skill
 
@@ -132,6 +217,20 @@ grep -F "$(pwd)" ~/.codex/skills/agent-workflow/SKILL.md
 
 The grep command should print the installed kit root line.
 
+5. Confirm the installed copy includes Workflow V2 and Runtime guidance:
+
+```bash
+grep -n "runtime.cli\|config.json\|run_eval" ~/.codex/skills/agent-workflow/SKILL.md
+```
+
+When workflow templates, generated behavior, or sync rules change, update `templates/VERSION`. When generator/runtime script capability changes, update root `VERSION`. Generated targets record `workflow_version`, `template_revision`, and `kit_version` in `.agent/config.json` for sync decisions.
+
+After changing agent-workflow-kit, decide whether the installed skill must be refreshed:
+
+- Refresh the installed skill when changes affect workflow behavior, generated/updated files, sync/version rules, validation policy, Runtime/Eval guidance, safety rules, done criteria, or this skill's instructions.
+- Reinstall with `scripts/install_codex_skill.sh`, then verify the installed copy with the grep checks above.
+- If no refresh is needed, state why in the final handoff so the decision is explicit.
+
 ## Safety Rules
 
 - Check `git status --short` in the target when it is a Git repo.
@@ -150,7 +249,12 @@ Report:
 - chosen stack
 - generated or optimized files
 - validation command and outcome
+- Runtime command and trace path when Runtime was used
+- eval command and outcome when kit-level eval was required
 - acceptance command outcome when acceptance was required
+- acceptance level, classification reason, confidence and uncovered risk when verification was selected automatically
+- test-case self-validation result when tests were generated or added
+- Patrol support status for Flutter L3/L4 work when relevant
 - requirement/design/plan files created or updated
-- traceability and test-report status
+- traceability, eval-report and test-report status
 - any skipped step and why

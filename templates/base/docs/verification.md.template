@@ -34,6 +34,17 @@
 - 需求未说明验证方式时，先按 `docs/process/verification.md` 判定验证项，再写入 active plan。
 - 涉及 UI、交互、权限、文件、录音、支付或原生能力时，仅基础验证通常不足以证明完成。
 - 高风险需求完成后，按 `docs/process/verification.md` 的独立复核门禁执行。
+- 自动判定验收等级 L0-L4，并记录判定依据、置信度、验证命令和未覆盖风险。
+- 增强能力按场景触发，不作为每个需求的固定步骤；触发或跳过原因要记录。
+- 如果本轮生成或新增测试用例，先做测试用例自验证，再用测试验证代码。
+
+## E2E / Patrol
+
+- 当前栈推荐 E2E 工具：`{{E2E_TOOL_NAME}}`
+- 推荐 E2E 命令：`{{E2E_TEST_COMMAND}}`
+- 说明：{{E2E_SETUP_NOTE}}
+
+Flutter 项目如果已生成 `docs/testing/patrol.md`，L3/L4 场景优先读取该文档。未配置 Patrol 时，不要把 Patrol 标记为已覆盖；应记录未覆盖原因，并退回本地/模拟器验收。
 
 ## 证据记录位置
 

@@ -6,3 +6,6 @@ start_command: printf '%s\n' 'TODO: configure START_COMMAND in init.sh'
 dependency_sync_command: __SKIP__
 build_docs: 没有内置构建文档。请按项目实际情况补充 docs/build.md 或其他构建说明。
 lightweight_validation_note: 通用模板不会猜测项目命令；生成后请优先把 init.sh 中的 TODO 命令替换成项目真实验证命令。
+e2e_tool_name: 未配置
+e2e_test_command: __SKIP__
+e2e_setup_note: 通用模板不默认配置 E2E 工具；如项目需要端到端验收，请在 docs/testing/ 中补充项目适用方案。

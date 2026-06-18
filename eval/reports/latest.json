@@ -1,0 +1,9 @@
+{
+  "cases": 3,
+  "passed": 3,
+  "failed": 0,
+  "intent_accuracy": 1.0,
+  "stack_detection_accuracy": 1.0,
+  "slot_filling_accuracy": 1.0,
+  "failures": []
+}

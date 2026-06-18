@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT_DIR"
+
+PATROL_COMMAND="${PATROL_COMMAND:-{{E2E_TEST_COMMAND}}}"
+PATROL_SCENARIO="${PATROL_SCENARIO:-unspecified}"
+ARTIFACT_DIR="$ROOT_DIR/.dart_tool/acceptance"
+RUN_ID="$(date +%Y%m%d-%H%M%S)-patrol"
+RUN_DIR="$ARTIFACT_DIR/$RUN_ID"
+LOG_FILE="$RUN_DIR/patrol.log"
+SUMMARY_FILE="$RUN_DIR/summary.md"
+EVIDENCE_FILE="$RUN_DIR/evidence.json"
+
+mkdir -p "$RUN_DIR"
+
+status="failed"
+exit_code=0
+
+if ! command -v patrol >/dev/null 2>&1; then
+  exit_code=127
+  cat >"$LOG_FILE" <<EOF
+缺少命令: patrol
+请先按 docs/testing/patrol.md 完成 Patrol 接入检查。
+EOF
+else
+  set +e
+  bash -lc "$PATROL_COMMAND" >"$LOG_FILE" 2>&1
+  exit_code=$?
+  set -e
+fi
+
+if [ "$exit_code" -eq 0 ]; then
+  status="passed"
+fi
+
+cat >"$SUMMARY_FILE" <<EOF
+# Patrol 验收摘要
+
+- 状态：$status
+- 项目：{{PROJECT_NAME}}
+- 场景：$PATROL_SCENARIO
+- 命令：\`$PATROL_COMMAND\`
+- 日志：$LOG_FILE
+EOF
+
+python3 - "$EVIDENCE_FILE" "$status" "$exit_code" "$PATROL_SCENARIO" "$PATROL_COMMAND" "$LOG_FILE" "$SUMMARY_FILE" <<'PY'
+import json
+import sys
+
+path, status, exit_code, scenario, command, log_file, summary_file = sys.argv[1:]
+with open(path, "w", encoding="utf-8") as f:
+    json.dump(
+        {
+            "kind": "patrol",
+            "status": status,
+            "exit_code": int(exit_code),
+            "scenario": scenario,
+            "command": command,
+            "log_file": log_file,
+            "summary_file": summary_file,
+        },
+        f,
+        ensure_ascii=False,
+        indent=2,
+    )
+    f.write("\n")
+PY
+
+echo "==> Patrol 验收摘要: $SUMMARY_FILE"
+echo "==> Patrol 证据: $EVIDENCE_FILE"
+
+exit "$exit_code"

@@ -1,0 +1,10 @@
+{
+  "id": "generate_flutter_workflow",
+  "input": "给这个 Flutter 项目生成 agent 工作流",
+  "fixture": "flutter_empty_project",
+  "expected": {
+    "intent": "generate_workflow",
+    "stack": "flutter",
+    "requires_user_input": false
+  }
+}
