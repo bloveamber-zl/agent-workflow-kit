@@ -6,7 +6,10 @@ from pathlib import Path
 from runtime.context_builder import build_context
 from runtime.executor import execute_workflow_action
 from runtime.models import TraceNode
+from runtime.planner import plan_workflow
+from runtime.query_rewriter import rewrite_query
 from runtime.reporter import render_report
+from runtime.requirement_parser import parse_requirement
 from runtime.router import route_intent
 from runtime.trace import write_trace
 from runtime.validator import validate_target
@@ -22,6 +25,49 @@ def run(user_request: str, target: str, apply_upgrade: bool = False) -> tuple[in
         ]
         trace_path = write_trace(context.target_path, intent, user_request, nodes, "blocked")
         return 2, render_report(intent, context, "blocked", trace_path)
+
+    if intent == "test_case_workflow":
+        task = rewrite_query(user_request, target_path=str(context.target_path))
+        requirement = parse_requirement(task)
+        plan = plan_workflow(task, requirement, context)
+        actions = [step.action for step in plan.steps]
+        nodes = [
+            TraceNode(
+                "router",
+                "passed",
+                {
+                    "intent": intent,
+                    "confidence": route.confidence,
+                    "execution_mode": task.execution_mode,
+                },
+            ),
+            TraceNode(
+                "context_builder",
+                "passed",
+                {
+                    "detected_stack": context.detected_stack,
+                    "has_workflow": context.has_workflow,
+                    "workflow_version": context.workflow_version,
+                },
+            ),
+            TraceNode(
+                "planner",
+                "passed",
+                {
+                    "goal": requirement.goal,
+                    "actions": actions,
+                },
+            ),
+        ]
+        trace_path = write_trace(context.target_path, intent, user_request, nodes, "passed")
+        return 0, render_report(
+            intent,
+            context,
+            "agent_action_required",
+            trace_path,
+            execution_mode=task.execution_mode,
+            plan_steps=actions,
+        )
 
     execution = execute_workflow_action(intent, context, apply_upgrade=apply_upgrade)
     validation = validate_target(context.target_path) if execution.exit_code == 0 else None

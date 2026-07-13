@@ -2,7 +2,7 @@
 
 ## 什么时候读
 
-Flutter 项目进入 L3/L4 验收，且需求涉及权限、通知、相册、文件、录音、定位、WebView、OAuth、支付或跨 App 链路时读取。
+Flutter 项目配置了 Patrol，且用户选择使用 Patrol 验证当前需求时读取。L3/L4、核心链路、权限、通知、相册、文件、录音、定位、WebView、OAuth、支付、订阅、账号或跨 App 链路应优先建议 Patrol，但仍需用户确认或明确触发。
 
 ## 当前状态
 
@@ -21,6 +21,31 @@ Flutter 项目进入 L3/L4 验收，且需求涉及权限、通知、相册、�
 
 如果以上条件不满足，不要把 Patrol 标记为已覆盖；改用 `scripts/acceptance_simulator.sh` 做本地/模拟器验收，并在 `docs/reports/test-report.md` 记录 Patrol 未覆盖原因。
 
+## 需求级用例生成
+
+用户选择 Patrol 后，Agent 必须先根据需求生成或更新需求级用例：
+
+```text
+patrol_test/<requirement-id>_test.dart
+```
+
+用例生成规则：
+
+- 从 `docs/requirements/parsed-requirements.md`、active plan 和验收标准提取自动化验收点。
+- 没有稳定定位点时，先补最小必要 `ValueKey` 或项目既有定位方式。
+- 用例必须包含真实断言，不能只启动 App 或只等待不报错。
+- 每个断言要能映射到需求 ID、验收标准或失败复现路径。
+- 涉及登录态、mock 数据、测试账号、设备权限、后端环境或构建参数时，先记录准备步骤和不可自动化风险。
+- 不覆盖无关历史用例；修改共享 helper 时说明影响范围。
+
+可自动化断言示例：
+
+- 页面入口存在、文案或状态正确。
+- 点击后跳转到目标页面。
+- 弹窗、底部 Sheet、系统权限提示出现。
+- 购买、订阅、积分、账号等状态触发了预期 UI 或回调。
+- 异常、取消、无权限、重复点击等关键边界有可观察结果。
+
 ## 推荐命令
 
 ```bash
@@ -28,19 +53,45 @@ patrol doctor
 scripts/patrol_acceptance.sh
 ```
 
-可指定场景：
+只跑当前需求用例：
 
 ```bash
-PATROL_SCENARIO='权限弹窗验收' scripts/patrol_acceptance.sh
+PATROL_TARGET='patrol_test/<requirement-id>_test.dart' scripts/patrol_acceptance.sh
 ```
+
+可指定设备、场景和附加参数：
+
+```bash
+PATROL_DEVICE='<device-id>' \
+PATROL_SCENARIO='<需求ID>: <关键路径>' \
+PATROL_EXTRA_ARGS='--show-flutter-logs' \
+scripts/patrol_acceptance.sh
+```
+
+项目如果需要 `--dart-define-from-file`、`--flavor`、签名、环境或账号参数，把这些参数记录在本文件的“项目 Patrol 配置”区或通过脚本环境变量传入；不要把私有账号、密钥或个人路径写入通用模板。
+
+如果项目存在 `.vscode/launch.json` 或 `define_config/.custom.json`，先读取这些本地启动配置，再决定 `PATROL_DART_DEFINE_FILE`、`PATROL_FLAVOR`、`PATROL_EXTRA_ARGS`。iOS、Android、profile、release 等配置可能不同，不要把一个平台的参数套到另一个平台。
+
+## 项目 Patrol 配置
+
+- 默认设备：待项目补充。
+- 默认 dart define：待项目补充。
+- 默认 flavor / scheme：待项目补充。
+- 测试账号或 mock 策略：待项目补充。
+- 不可自动化或需要人工复核的风险：待项目补充。
 
 ## 证据要求
 
 Patrol 通过后，把以下信息写回 active plan、`docs/requirements/traceability.md` 和 `docs/reports/test-report.md`：
 
-- 验收等级：L3 或 L4
-- 命令：`scripts/patrol_acceptance.sh`
-- 场景：实际关键路径
-- 结果：通过 / 失败 / blocker
-- 证据：日志路径、测试文件、失败截图或 CI 报告
+- 验收等级：L2/L3/L4。
+- 是否用户选择 Patrol，以及触发原因。
+- Patrol 测试文件：`patrol_test/<requirement-id>_test.dart`。
+- 覆盖的验收点。
+- 命令：`scripts/patrol_acceptance.sh`。
+- 设备：模拟器、真机或 CI 环境。
+- 场景：实际关键路径。
+- 结果：通过 / 失败 / blocker。
+- 证据：`summary.md`、`evidence.json`、日志路径、截图或 CI 报告。
 
+Patrol 失败时，先按 `docs/process/failure-taxonomy.md` 归因，再决定是修业务代码、修测试定位、补测试环境，还是记录 blocker。修复后必须复跑同一用例。

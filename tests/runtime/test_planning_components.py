@@ -1,4 +1,5 @@
 import unittest
+import tempfile
 from pathlib import Path
 
 from runtime.context_builder import build_context
@@ -26,16 +27,87 @@ class PlanningComponentTests(unittest.TestCase):
         self.assertIn("validate_target.sh 通过", requirement.acceptance)
 
     def test_planner_and_skill_selector_for_generation(self):
-        context = build_context(Path.cwd())
-        task = rewrite_query("生成 agent workflow", target_path=str(Path.cwd()))
-        requirement = parse_requirement(task)
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+            context = build_context(target)
+            task = rewrite_query("生成 agent workflow", target_path=str(target))
+            requirement = parse_requirement(task)
 
-        plan = plan_workflow(task, requirement, context)
-        skill = select_skill(task, context)
+            plan = plan_workflow(task, requirement, context)
+            skill = select_skill(task, context)
 
-        self.assertEqual([step.action for step in plan.steps], ["inspect_target", "detect_stack", "run_generate_script", "run_validate_script"])
-        self.assertEqual(skill.skill, "agent-workflow")
-        self.assertIn("scripts/generate_workflow.sh", skill.entrypoints)
+            self.assertEqual([step.action for step in plan.steps], ["inspect_target", "detect_stack", "run_generate_script", "run_validate_script"])
+            self.assertEqual(skill.skill, "agent-workflow")
+            self.assertIn("scripts/generate_workflow.sh", skill.entrypoints)
+
+    def test_planner_for_project_reconnaissance(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+            (target / "package.json").write_text('{"name":"demo"}\n', encoding="utf-8")
+
+            context = build_context(target)
+            task = rewrite_query("进行项目深度扫描并回填", target_path=str(target))
+            requirement = parse_requirement(task)
+
+            plan = plan_workflow(task, requirement, context)
+            skill = select_skill(task, context)
+
+            self.assertEqual(task.intent, "recon_project")
+            self.assertIn("preserve_existing_descriptions", task.constraints)
+            self.assertEqual(
+                [step.action for step in plan.steps],
+                ["inspect_target", "detect_stack", "run_recon_script", "run_validate_script"],
+            )
+            self.assertIn("scripts/recon_project.sh", skill.entrypoints)
+
+    def test_planner_for_pre_implementation_test_case_workflow(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+            context = build_context(target)
+            task = rewrite_query("这个需求需要测试用例", target_path=str(target))
+            requirement = parse_requirement(task)
+
+            plan = plan_workflow(task, requirement, context)
+            skill = select_skill(task, context)
+
+            self.assertEqual(task.intent, "test_case_workflow")
+            self.assertEqual(task.execution_mode, "pre_implementation")
+            self.assertIn("test_case_mode_enabled", task.constraints)
+            self.assertIn("每个验收标准映射到测试用例 ID", requirement.acceptance)
+            self.assertEqual(
+                [step.action for step in plan.steps],
+                [
+                    "inspect_target",
+                    "parse_requirement",
+                    "generate_test_case_doc",
+                    "request_test_case_approval",
+                    "generate_automated_tests",
+                    "verify_expected_failure",
+                    "implement_feature",
+                    "run_requirement_tests",
+                    "record_test_evidence",
+                ],
+            )
+            self.assertEqual(skill.skill, "agent-workflow")
+            self.assertIn("docs/test-cases/README.md", skill.entrypoints)
+
+    def test_planner_for_post_implementation_test_case_workflow(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+            context = build_context(target)
+            task = rewrite_query(
+                "这个功能已经开发完成，请根据需求生成测试用例并执行测试",
+                target_path=str(target),
+            )
+            requirement = parse_requirement(task)
+
+            plan = plan_workflow(task, requirement, context)
+
+            actions = [step.action for step in plan.steps]
+            self.assertEqual(task.execution_mode, "post_implementation")
+            self.assertIn("inspect_existing_implementation", actions)
+            self.assertNotIn("verify_expected_failure", actions)
+            self.assertNotIn("implement_feature", actions)
 
 
 if __name__ == "__main__":

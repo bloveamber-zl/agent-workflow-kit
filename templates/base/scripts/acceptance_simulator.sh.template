@@ -7,6 +7,11 @@ cd "$ROOT_DIR"
 
 ACCEPTANCE_COMMAND="${ACCEPTANCE_COMMAND:-{{START_COMMAND}}}"
 ACCEPTANCE_DEVICE="${ACCEPTANCE_DEVICE:-${FLUTTER_DEVICE:-}}"
+ACCEPTANCE_PLATFORM="${ACCEPTANCE_PLATFORM:-}"
+ACCEPTANCE_LAUNCH_CONFIG="${ACCEPTANCE_LAUNCH_CONFIG:-}"
+ACCEPTANCE_DART_DEFINE_FILE="${ACCEPTANCE_DART_DEFINE_FILE:-}"
+ACCEPTANCE_FLAVOR="${ACCEPTANCE_FLAVOR:-}"
+ACCEPTANCE_EXTRA_ARGS="${ACCEPTANCE_EXTRA_ARGS:-}"
 ACCEPTANCE_TIMEOUT_SECONDS="${ACCEPTANCE_TIMEOUT_SECONDS:-600}"
 ACCEPTANCE_KEEP_RUNNING="${ACCEPTANCE_KEEP_RUNNING:-0}"
 ACCEPTANCE_DRY_RUN="${ACCEPTANCE_DRY_RUN:-0}"
@@ -47,6 +52,135 @@ find_flutter_ios_simulator() {
   fi
 }
 
+detect_flutter_device_platform() {
+  local device="$1"
+  if [ -n "$ACCEPTANCE_PLATFORM" ]; then
+    printf '%s\n' "$ACCEPTANCE_PLATFORM"
+    return 0
+  fi
+  if [ -z "$device" ] || ! command -v flutter >/dev/null 2>&1; then
+    return 0
+  fi
+
+  flutter devices 2>/dev/null | awk -F'•' -v id="$device" '
+    index($0, id) > 0 {
+      platform = $3
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", platform)
+      print platform
+      exit
+    }
+  '
+}
+
+resolve_flutter_launch_args() {
+  local platform="$1"
+  python3 - "$ROOT_DIR" "$platform" "$ACCEPTANCE_LAUNCH_CONFIG" "$ACCEPTANCE_DART_DEFINE_FILE" "$ACCEPTANCE_FLAVOR" "$ACCEPTANCE_EXTRA_ARGS" <<'PY'
+import json
+import shlex
+import sys
+from pathlib import Path
+
+root, platform, launch_name, dart_define_file, flavor, extra_args = sys.argv[1:7]
+root = Path(root)
+
+
+def strip_json_comments(text: str) -> str:
+    result = []
+    in_string = False
+    escape = False
+    i = 0
+    while i < len(text):
+        ch = text[i]
+        nxt = text[i + 1] if i + 1 < len(text) else ""
+        if in_string:
+            result.append(ch)
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == '"':
+                in_string = False
+            i += 1
+            continue
+        if ch == '"':
+            in_string = True
+            result.append(ch)
+            i += 1
+            continue
+        if ch == "/" and nxt == "/":
+            while i < len(text) and text[i] not in "\r\n":
+                i += 1
+            continue
+        if ch == "/" and nxt == "*":
+            i += 2
+            while i + 1 < len(text) and not (text[i] == "*" and text[i + 1] == "/"):
+                i += 1
+            i += 2
+            continue
+        result.append(ch)
+        i += 1
+    return "".join(result)
+
+
+def load_launch_args() -> list[str]:
+    launch_path = root / ".vscode" / "launch.json"
+    if not launch_path.exists():
+        return []
+    data = json.loads(strip_json_comments(launch_path.read_text(encoding="utf-8")))
+    configs = [
+        item
+        for item in data.get("configurations", [])
+        if item.get("type") == "dart" and item.get("request") == "launch"
+    ]
+    if not configs:
+        return []
+    if launch_name:
+        for item in configs:
+            if item.get("name") == launch_name:
+                return [str(arg) for arg in item.get("args", [])]
+        return []
+    lower_platform = platform.lower()
+    if lower_platform.startswith("ios"):
+        for item in configs:
+            if "ios" in str(item.get("name", "")).lower():
+                return [str(arg) for arg in item.get("args", [])]
+        for item in configs:
+            args = [str(arg) for arg in item.get("args", [])]
+            if "--flavor" not in args:
+                return args
+    if lower_platform.startswith("android"):
+        for item in configs:
+            if "android" in str(item.get("name", "")).lower():
+                return [str(arg) for arg in item.get("args", [])]
+        for item in configs:
+            args = [str(arg) for arg in item.get("args", [])]
+            if "--flavor" in args:
+                return args
+        for item in configs:
+            if "ios" not in str(item.get("name", "")).lower():
+                return [str(arg) for arg in item.get("args", [])]
+    return [str(arg) for arg in configs[0].get("args", [])]
+
+
+args = load_launch_args()
+custom_config = root / "define_config" / ".custom.json"
+if dart_define_file:
+    if "--dart-define-from-file" not in args:
+        args.extend(["--dart-define-from-file", dart_define_file])
+elif custom_config.exists() and "--dart-define-from-file" not in args:
+    args.extend(["--dart-define-from-file", "define_config/.custom.json"])
+
+if flavor and "--flavor" not in args:
+    args.extend(["--flavor", flavor])
+
+if extra_args:
+    args.extend(shlex.split(extra_args))
+
+if args:
+    print(shlex.join(args))
+PY
+}
+
 write_manual_checklist() {
   cat >"$CHECKLIST_FILE" <<EOF
 # 本地/模拟器手动验收清单
@@ -56,6 +190,8 @@ write_manual_checklist() {
 - 技术栈：{{STACK_NAME}}
 - 命令：$ACCEPTANCE_COMMAND
 - 设备：${ACCEPTANCE_DEVICE:-未指定}
+- 启动配置：${ACCEPTANCE_LAUNCH_CONFIG:-自动}
+- 平台：${ACCEPTANCE_PLATFORM:-自动}
 - 场景：$ACCEPTANCE_SCENARIO
 - 预期路径：$ACCEPTANCE_EXPECTED_PATH
 - 日志：$LOG_FILE
@@ -133,6 +269,8 @@ write_summary() {
 - 预期路径：$ACCEPTANCE_EXPECTED_PATH
 - 命令：\`$RUN_CMD\`
 - 设备：${ACCEPTANCE_DEVICE:-未指定}
+- 启动配置：${ACCEPTANCE_LAUNCH_CONFIG:-自动}
+- 平台：${ACCEPTANCE_PLATFORM:-自动}
 - 日志：$LOG_FILE
 - 截图：$SCREENSHOT_FILE
 - 手动清单：$CHECKLIST_FILE
@@ -152,6 +290,13 @@ if [ -z "$ACCEPTANCE_DEVICE" ] && [ "{{STACK_NAME}}" = "flutter" ]; then
 fi
 
 RUN_CMD="$ACCEPTANCE_COMMAND"
+if [ "{{STACK_NAME}}" = "flutter" ]; then
+  DETECTED_PLATFORM="$(detect_flutter_device_platform "$ACCEPTANCE_DEVICE" | head -n 1 || true)"
+  LAUNCH_ARGS="$(resolve_flutter_launch_args "$DETECTED_PLATFORM" | tr -d '\n')"
+  if [ -n "$LAUNCH_ARGS" ] && ! printf '%s' "$RUN_CMD" | grep -q -- '--dart-define-from-file\|--flavor'; then
+    RUN_CMD="$RUN_CMD $LAUNCH_ARGS"
+  fi
+fi
 if [ -n "$ACCEPTANCE_DEVICE" ] && [ "{{STACK_NAME}}" = "flutter" ] && ! printf '%s' "$RUN_CMD" | grep -Eq '(^|[[:space:]])-d([[:space:]]|$)'; then
   RUN_CMD="$RUN_CMD -d $ACCEPTANCE_DEVICE"
 fi

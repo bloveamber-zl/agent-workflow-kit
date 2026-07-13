@@ -1,2 +1,25 @@
 __pycache__/
 *.py[cod]
+
+# BEGIN agent-workflow-kit
+# Generated agent workflow files
+/.agent/
+/init.sh
+/docs/index.md
+/docs/verification.md
+/docs/acceptance_simulator.md
+/docs/coding-progress.md
+/docs/feature_list.json
+/docs/session-handoff.md
+/docs/design/
+/docs/exec-plans/
+/docs/process/
+/docs/project/
+/docs/reports/
+/docs/requirements/
+/docs/testing/
+/docs/tools/
+/docs/test-cases/
+/scripts/acceptance_simulator.sh
+/scripts/patrol_acceptance.sh
+# END agent-workflow-kit

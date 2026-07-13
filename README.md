@@ -15,6 +15,7 @@
 - `docs/process/failure-taxonomy.md`
 - `docs/process/badcase-analysis.md`
 - `docs/acceptance_simulator.md`
+- `docs/workflow-capabilities.md`
 - `docs/testing/patrol.md`：Flutter 项目选择 Patrol 验收支持时生成
 - `docs/tools/opendesign.md`：选择 Open Design 可选增强时生成，只在用户明确要求 Open Design 时使用
 - `docs/coding-progress.md`
@@ -32,6 +33,10 @@
 生成或升级工作流时，脚本会在目标项目 `.gitignore` 中写入 `agent-workflow-kit` 忽略块，默认不把这些工作流文件纳入版本管理。`docs/requirements/`、`docs/design/`、`docs/exec-plans/`、`docs/reports/` 等动态文档目录使用目录级忽略，后续新增文档也会自动忽略。
 
 初始化时会根据目标项目的常见目录和配置文件，自动填充 `docs/project/structure/overview.md`、`docs/project/structure/architecture.md`、`docs/project/features/overview.md`、`docs/project/frontend.md` 和 `docs/project/constraints.md` 的基础项目地图；业务定位和领域细节仍需在后续任务中补充。
+
+安装后的项目还会生成 `docs/workflow-capabilities.md`，集中说明当前工作流已启用的主动功能、对话触发方式、默认目标与回填策略。当前主动能力包括“`进行项目深度扫描并回填`”和显式触发的测试用例驱动验证。
+
+测试用例驱动验证默认关闭且不主动提醒。用户明确提出“需要测试用例”时进入开发前模式；明确说明功能已经开发完成并要求根据需求生成测试时，进入开发后模式。详细规则见 `docs/test-cases/README.md`。
 
 ## 使用方式
 
@@ -57,7 +62,7 @@ scripts/generate_workflow.sh /path/to/project --stack generic
 python3 -m runtime.cli run "给这个项目生成 agent workflow" --target /path/to/project
 ```
 
-Runtime 会识别 intent、检测技术栈、调用底层脚本、运行校验，并把执行轨迹写入目标项目 `.agent/traces/`。
+Runtime 会识别 intent、检测技术栈、调用底层脚本、运行校验，并把执行轨迹写入目标项目 `.agent/traces/`。测试用例意图只输出 Agent handoff plan，不会假装通过通用脚本生成跨技术栈测试。
 
 Flutter 项目初始化或升级时，脚本会在交互式终端询问是否生成 Patrol 验收支持文件。非交互环境默认跳过，可用环境变量控制：
 
@@ -75,13 +80,21 @@ AGENT_WORKFLOW_CODEGRAPH=yes scripts/generate_workflow.sh /path/to/project --sta
 AGENT_WORKFLOW_CODEGRAPH=no scripts/generate_workflow.sh /path/to/project --stack node
 ```
 
-初始化或升级时也可以生成 Open Design 可选增强说明。该流程只生成 `docs/tools/opendesign.md` 和配置记录；Open Design 仍只能在用户明确要求使用 Open Design、生成设计稿/视觉稿或按 Open Design 设计稿生成代码时调用：
+初始化或升级时也可以生成 Open Design 可选增强说明。该流程只生成 `docs/tools/opendesign.md` 和配置记录，不会静默安装 MCP；Codex 侧 MCP 需按 Open Design 官方 installer 接入。Open Design 仍只能在用户明确要求使用 Open Design、生成设计稿/视觉稿或按 Open Design 设计稿生成代码时调用：
 
 ```bash
 AGENT_WORKFLOW_OPENDESIGN=ask scripts/generate_workflow.sh /path/to/project --stack node
 AGENT_WORKFLOW_OPENDESIGN=yes scripts/generate_workflow.sh /path/to/project --stack node
 AGENT_WORKFLOW_OPENDESIGN=no scripts/generate_workflow.sh /path/to/project --stack node
 ```
+
+```bash
+od mcp install codex --print
+od mcp install codex
+codex mcp list
+```
+
+Open Design 生成设计稿时，workflow 会要求把“真实产品级、行业识别、去 AI demo 感、禁止泛用 SaaS 模板/渐变光斑/大卡片堆叠”等质量约束写入 brief，并在截图验收中记录质感、去 AI 味、行业识别度、信息密度和可实现性评分。若设计稿需要额外素材，可在用户确认后调用 `$openai-image-gateway`，并优先把多个素材生成到一张素材板后再拆分，减少按张计费。
 
 默认不会覆盖目标项目已有文件。确实需要覆盖时：
 
@@ -196,6 +209,12 @@ scripts/install_codex_skill.sh
 - `docs/project/constraints.md`：项目特定规则、编码约定、安全限制和风险。
 
 验收阶段按 L0-L4 自动判定验证强度。需求澄清、PRD、拆任务、TDD、诊断、架构巡检、E2E/Patrol 和交接作为按场景触发的增强能力，不进入每个需求的固定步骤；触发或跳过原因写入 active plan、追踪矩阵或测试报告。新增或生成测试用例时，先做测试用例自验证，再用测试验证代码。
+
+测试用例驱动模式是另一个显式增强：默认不启用、不提醒。开发前模式先确认需求级用例、生成失败测试再实现；开发后模式根据原始需求生成用例并直接验证现有实现，不伪造历史红灯。无法自动化时必须记录原因和人工验收证据。
+
+Flutter 项目启用 Patrol 支持后，用户可在开发完成后选择“用 Patrol 验证这个需求”。工作流会要求 Agent 根据需求验收点生成或更新 `patrol_test/<requirement-id>_test.dart`，补必要稳定定位点，运行 `scripts/patrol_acceptance.sh`，并把 `summary.md`、`evidence.json`、日志和未覆盖风险写回 active plan、`docs/requirements/traceability.md` 和 `docs/reports/test-report.md`。
+
+Flutter 启动和验收会优先检查 `.vscode/launch.json` 与 `define_config/.custom.json`。如果项目提供了平台相关 launch args，工作流要求 Agent 按 iOS、Android 等目标平台选择对应配置，并把实际启动参数写入验收记录；通用模板不写死任何单项目 flavor 或 dart define。
 
 ## 内置技术栈
 

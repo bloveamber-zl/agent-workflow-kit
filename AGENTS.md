@@ -1,32 +1,103 @@
 # AGENTS.md
 
-这个仓库用于维护可复用的 agent 工作流模板和生成脚本。目标是让 Codex 或其他 coding agent 读取本项目后，可以为不同技术栈项目生成一致的开工、验证、记录和交接流程。
+这个文件是 coding agent 的入口和路由层。保持简短；完整文档地图、流程细节、项目规则、计划和验证证据都放在 `docs/` 下。
+
+## 项目上下文
+
+- 项目名称：`agent-workflow-kit`
+- 项目根目录：`/Users/Lin/project/agent-workflow-kit`
+- 技术栈：`generic`
+- 生成日期：`2026-07-07`
+- 项目目标：维护可复用的 agent 工作流模板和生成脚本，让 Codex 或其他 coding agent 能为不同技术栈项目生成一致的开工、验证、记录和交接流程。
 
 ## 项目偏好
 
 - 默认中文回复，言简意赅。
 - 优先保持模板通用，不把单个业务项目的规则写死到 base 模板。
 - 脚本保持无外部依赖；默认使用 Bash、awk、perl、python3 等常见系统工具。
+- 优先使用轻量验证，避免默认执行完整构建、签名、发布或高成本命令。
+- 按需使用 Plan Mode 或 Subagent；只有任务可并行且边界清晰时才拆分。
+- 若编码、修复、重构或评审，按需使用 `superpowers` 和项目适用的编码准则。
+- Open Design 只能在用户明确要求使用 Open Design、设计稿、视觉稿或基于 Open Design 生成代码时调用；默认 UI 需求不得自动启用。
+- 若提交 Git，提交信息用中文，并包含问题/需求描述、修复/实现思路或复现路径。
+
+## 开工入口
+
+写代码前先做这些事：
+
+1. 用 `pwd` 确认当前目录是 `/Users/Lin/project/agent-workflow-kit`。
+2. 读取 `docs/index.md`，按文档地图决定本轮继续读什么。
+3. 读取 `.agent/state/current-task.json`，确认当前任务状态、关联需求、计划和 blocker。
+4. 读取 `.agent/config.json`，确认 workflow 版本、技术栈、trace 开关和覆盖策略。
+5. 读取 `docs/coding-progress.md`，了解最近会话状态、当前需求、当前计划和下一步。
+6. 读取 `docs/feature_list.json`，确认项目级需求索引和当前需求阶段。
+7. 用 `git status --short` 确认工作树，避免覆盖用户已有改动。
+8. 用 `git log --oneline -5` 看最近提交。
+9. 按需运行 `./init.sh`；纯文档小改可说明原因后跳过。
+10. 如果已有 active plan，按当前步骤继续；没有计划时，先完成需求解析、项目侦察、开发文档和计划确认。
+
+如果基础验证一开始就失败，先修基础状态，或把失败记录为 blocker，不要在坏的起点上继续叠新功能。
+
+## 硬规则
+
+- 一次只做一个功能或一个明确修复。
+- 不要因为“代码已经写了”就把功能标记为完成。
+- 不覆盖已有模板语义，除非同步更新文档说明。
+- 生成脚本默认不得覆盖目标项目已有文件，除非用户显式传 `--force`。
+- 技术栈配置只放命令差异；通用流程应留在 `templates/base`。
+- 不把密钥、账号、私有路径写入模板。
 - 新增模板变量时，同时更新 `docs/template-variables.md`、`README.md` 和 `scripts/generate_workflow.sh`。
 - 修改生成行为后，运行 `scripts/self_test.sh`。
+- 优先依赖仓库里的持久化文件，而不是聊天记录。
+- 不要还原或清理你没有制造的未提交改动。
+- `docs/feature_list.json` 只做项目级需求索引；详细步骤属于 active plan。
+- `docs/coding-progress.md` 只做会话级进度日志；完整计划和证据属于 active plan、traceability 和报告。
+- 非 trivial 任务要维护 `.agent/state/current-task.json`；状态只使用 `intake`、`understanding`、`designing`、`planning`、`approved`、`implementing`、`verifying`、`done`、`blocked`。
+- 测试用例驱动模式默认关闭且不主动提醒；只有用户明确要求测试用例时，才读取 `docs/test-cases/README.md` 并对当前需求启用。
+- 项目特定规则写入 `docs/project/constraints.md`，最关键硬规则可同步摘要到本文件。
 
-## 工作规则
+## 需求流程摘要
 
-1. 先确认目标是改模板、改脚本，还是新增技术栈配置。
-2. 不覆盖已有模板语义，除非同步更新文档说明。
-3. 生成脚本默认不得覆盖目标项目已有文件，除非用户显式传 `--force`。
-4. 技术栈配置只放命令差异；通用流程应留在 `templates/base`。
-5. 不把密钥、账号、私有路径写入模板。
-6. 新增方法和变量需要增加注释，说明用途或业务含义；简单局部临时变量可按可读性酌情省略。
+新需求按以下顺序推进：
 
-## 验证
+```text
+requirements -> project understanding -> design -> exec plan -> user approval -> implementation -> verification
+```
 
-- 基础验证：`scripts/self_test.sh`
+- 需求解析写入 `docs/requirements/parsed-requirements.md`。
+- 疑问、冲突和默认假设写入 `docs/requirements/open-questions.md`。
+- 开发文档写入 `docs/design/YYYY-MM-DD-short-topic.md`。
+- 执行计划写入 `docs/exec-plans/active/YYYY-MM-DD-short-topic.md`。
+- 每完成一个步骤，运行该步骤登记的验证，并更新证据和 `docs/requirements/traceability.md`。
+- 需求澄清、PRD、拆分、TDD、诊断、架构巡检、E2E/Patrol 和交接只按场景触发；触发规则见 `docs/process/verification.md`。
+
+详细文档路由见 `docs/index.md`。
+
+## 验证入口
+
+- 项目验证入口：`docs/verification.md`
+- 通用验证规则：`docs/process/verification.md`
+- 基础验证：`./init.sh`
+- 严格验证：`VERIFY_MODE=analyze ./init.sh`
+- 测试验证：`VERIFY_MODE=test ./init.sh`
+- 本地/模拟器验收：`scripts/acceptance_simulator.sh`
+- kit 自测：`scripts/self_test.sh`
 - 单目标校验：`scripts/validate_target.sh <target-project-path>`
 - 生成测试：`scripts/generate_workflow.sh <target-project-path> --stack generic`
+- 验证失败或任务阻塞：读 `docs/process/failure-taxonomy.md`，并把证据记录到 active plan、`docs/reports/test-report.md` 或 `.agent/traces/`。
+- Agent 链路输出与预期不一致：读 `docs/process/badcase-analysis.md`，并把 eval 或复测结果记录到 `docs/reports/eval-report.md`。
+
+没有验证证据，不得标记完成。
 
 ## 收尾
 
-- 更新相关文档。
-- 记录新增或变更的模板变量。
-- 保证 `scripts/self_test.sh` 通过。
+结束会话前更新：
+
+- `.agent/state/current-task.json`
+- `docs/coding-progress.md`
+- `docs/feature_list.json`
+- 当前 active plan 的步骤状态和证据
+- `docs/requirements/traceability.md`
+- `docs/reports/test-report.md`
+
+长任务或失败复盘按需新增 `.agent/traces/*.json`；较长会话按需更新 `docs/session-handoff.md`。

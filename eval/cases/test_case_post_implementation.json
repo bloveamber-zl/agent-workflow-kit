@@ -1,0 +1,11 @@
+{
+  "id": "test_case_post_implementation",
+  "input": "这个功能已经开发完成，请根据需求生成测试用例并执行测试",
+  "fixture": "workflow_project",
+  "expected": {
+    "intent": "test_case_workflow",
+    "stack": "node",
+    "requires_user_input": false,
+    "execution_mode": "post_implementation"
+  }
+}

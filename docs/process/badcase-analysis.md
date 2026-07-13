@@ -2,6 +2,8 @@
 
 本文件用于 `agent-workflow-kit` 自身的 Runtime、Router、Planner、Executor、Validator 和 Eval badcase 复盘。目标项目生成的同名模板用于项目级记录。
 
+当 Agent 执行结果与预期不一致时，先记录事实，再决定修复位置。不要只凭最终输出判断原因。
+
 ## 记录模板
 
 ```text
@@ -32,3 +34,4 @@
 - 修改 Prompt 前先确认是否缺上下文、缺 schema 或缺 eval case。
 - 单个 badcase 修复不能牺牲已有通过场景。
 - 每次新增能力至少增加一个正向 case；每次修复 badcase 至少增加一个回归 case。
+- 如果是校验没发现问题，补 validator 规则和 eval case，并把结果写入 `docs/reports/eval-report.md` 或 `docs/reports/test-report.md`。

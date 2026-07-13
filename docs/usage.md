@@ -24,7 +24,32 @@ AGENT_WORKFLOW_CODEGRAPH=yes scripts/generate_workflow.sh /path/to/project --sta
 AGENT_WORKFLOW_OPENDESIGN=yes scripts/generate_workflow.sh /path/to/project --stack node
 ```
 
-Open Design 仅生成 `docs/tools/opendesign.md` 和配置记录。即使启用该文档，agent 也只能在用户明确要求使用 Open Design、生成设计稿/视觉稿或按 Open Design 设计稿生成代码时调用它。
+Open Design 仅生成 `docs/tools/opendesign.md` 和配置记录，不会静默安装 MCP。Codex 侧接入按 Open Design 官方 installer 执行：
+
+```bash
+od mcp install codex --print
+od mcp install codex
+codex mcp list
+```
+
+即使启用该文档，agent 也只能在用户明确要求使用 Open Design、生成设计稿/视觉稿或按 Open Design 设计稿生成代码时调用它。
+
+## 主动功能入口
+
+生成后的项目会附带 `docs/workflow-capabilities.md`，用来说明当前工作流已启用的主动功能、触发方式、默认目标和输出位置。
+
+当前已落地的主动功能包括：
+
+- `进行项目深度扫描并回填`：由 Agent 调用 `scripts/recon_project.sh`，扫描当前项目并补充 `docs/project/*`；默认只补充缺失信息，不改已有描述，若会改动现有文字结论则应先询问用户。
+- `校验当前工作流`：校验 workflow 文件完整性与 JSON/脚本合法性。
+- `同步当前工作流到最新版`：执行升级 dry-run 或 apply。
+- `修复当前工作流` / `补齐当前工作流`：补齐缺失或损坏的 workflow 文件。
+- `需要测试用例`：对当前需求启用开发前模式，先确认用例、生成自动化测试，再开发和复测。
+- `根据需求生成测试用例并执行测试`：对已开发需求启用开发后模式，按原始需求直接验证现有实现。
+
+测试用例驱动验证默认关闭且不主动提醒。详细格式、人工降级和完成门禁见 `docs/test-cases/README.md`。
+
+生成设计稿时必须合入质量提示词：真实产品级、行业识别明确、信息模块场景化、禁止泛用 AI/SaaS 仪表盘、渐变光斑、空泛文案和大卡片堆叠。生成后需要记录质感、去 AI 味、行业识别度、信息密度和可实现性评分；核心项低于 4/5 时应重新生成或迭代。若设计稿需要额外素材，可在用户确认后调用 `$openai-image-gateway`，并优先生成单张素材板再拆分，减少按张计费。
 
 ## 同步已有项目
 
@@ -62,6 +87,7 @@ scripts/upgrade_all_workflows.sh ~/project --stack flutter
 生成后的项目包含：
 
 - `.agent/state/current-task.json`：记录当前任务状态、关联需求、设计文档、执行计划、改动文件、验证记录和 blocker。
+- `docs/test-cases/README.md`：显式触发的测试用例驱动流程；需求级用例按 `docs/test-cases/<requirement-id>.md` 保存。
 - `.agent/config.json`：记录 workflow 版本、技术栈、trace 开关和默认覆盖策略。
 - `.agent/traces/README.md`：说明如何保存轻量任务轨迹。
 - `.agent/traces/schema.json`：约定 Runtime trace 的 JSON 结构。

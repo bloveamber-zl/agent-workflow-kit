@@ -19,7 +19,7 @@
 | 校验当前工作流 | enabled | `校验当前工作流` | 当前工作目录项目 | 运行 `scripts/validate_target.sh` |
 | 同步当前工作流到最新版 | enabled | `同步当前工作流到最新版` | 当前工作目录项目 | 工作流升级 dry-run 或 apply |
 | 修复或补齐当前工作流 | enabled | `修复当前工作流` / `补齐当前工作流` | 当前工作目录项目 | 补齐缺失 workflow 文件 |
-| 测试用例驱动验证 | planned | `需要测试用例` / `根据需求生成测试用例并执行测试` | 当前需求 | `docs/test-cases/<requirement-id>.md`、自动化测试与验收证据 |
+| 测试用例驱动验证 | enabled | `需要测试用例` / `根据需求生成测试用例并执行测试` | 当前需求 | `docs/test-cases/<requirement-id>.md`、自动化测试与验收证据 |
 | Patrol 验收 | disabled | `用 Patrol 验证这个需求` | 当前需求 | `docs/testing/patrol.md`、验收证据 |
 | CodeGraph 影响分析 | disabled | `用 CodeGraph 做影响分析` | 当前需求 | `docs/tools/codegraph.md` 指引与分析证据 |
 | Open Design 设计链路 | enabled | `用 Open Design 生成设计稿` | 当前需求 | `docs/tools/opendesign.md` 指引与设计证据 |
@@ -32,7 +32,7 @@
 
 ## 测试用例驱动验证
 
-- 当前状态：`planned`，设计已确认，尚未完成 Runtime、模板和验证链路实现。
+- 当前状态：`enabled`。
 - 默认关闭：未明确提出测试用例要求时，不启用、不提醒，继续使用项目默认验证配置。
 - 开发前模式：需求解析后生成测试用例，用户确认后先生成自动化测试，再开发并复测。
 - 开发后模式：用户提供已完成需求时，根据原始需求生成测试用例，确认后直接生成并运行测试。

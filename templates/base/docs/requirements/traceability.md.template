@@ -11,15 +11,17 @@
 
 ## 追踪矩阵
 
-| 需求 ID | 需求标题 | 验收等级 | 增强触发 | 开发文档 | 执行步骤 | 实现位置 | 验证项 | 证据 | 状态 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| REQ-WORKFLOW-BOOTSTRAP | 建立 agent 持久化工作流 | L1 | 无：初始化验证 | `docs/design/workflow-bootstrap.md` | `docs/exec-plans/active/workflow-bootstrap.md#step-01` | 工作流文件 | 运行 `./init.sh` | 待补充 | blocked |
+| 需求 ID | 需求标题 | 验收等级 | 增强触发 | 测试用例模式 | 测试用例 ID | Patrol 选择 | Patrol 用例 | 开发文档 | 执行步骤 | 实现位置 | 验证项 | 证据 | 状态 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| REQ-WORKFLOW-BOOTSTRAP | 建立 agent 持久化工作流 | L1 | 无：初始化验证 | 关闭 | - | 否：初始化不需要 | - | `docs/design/workflow-bootstrap.md` | `docs/exec-plans/active/workflow-bootstrap.md#step-01` | 工作流文件 | 运行 `./init.sh` | 待补充 | blocked |
 
 ## 漏实现检查
 
 - [ ] 每个需求 ID 都有 active plan 步骤。
 - [ ] 每个需求 ID 都有验收等级和判定依据。
 - [ ] 每个需求 ID 都记录增强能力触发或跳过原因。
+- [ ] 启用测试用例模式的需求都有测试用例 ID、执行模式和自动化或人工证据。
+- [ ] 用户选择 Patrol 的需求都有 Patrol 用例、覆盖验收点和证据。
 - [ ] 每个验收标准都有验证项。
 - [ ] 每个通过项都有命令、日志、截图、人工结论或其他证据。
 - [ ] 失败项已进入 `docs/reports/test-report.md` 的修复复测记录。

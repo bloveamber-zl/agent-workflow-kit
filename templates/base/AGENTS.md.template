@@ -48,6 +48,7 @@
 - `docs/feature_list.json` 只做项目级需求索引；详细步骤属于 active plan。
 - `docs/coding-progress.md` 只做会话级进度日志；完整计划和证据属于 active plan、traceability 和报告。
 - 非 trivial 任务要维护 `.agent/state/current-task.json`；状态只使用 `intake`、`understanding`、`designing`、`planning`、`approved`、`implementing`、`verifying`、`done`、`blocked`。
+- 测试用例驱动模式默认关闭且不主动提醒；只有用户明确要求测试用例时，才读取 `docs/test-cases/README.md` 并对当前需求启用。
 - 项目特定规则写入 `docs/project/constraints.md`，最关键硬规则可同步摘要到本文件。
 
 ## 需求流程摘要

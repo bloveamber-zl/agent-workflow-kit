@@ -23,6 +23,7 @@ def run_eval_cases(cases_dir: str | Path, fixtures_dir: str | Path) -> dict[str,
         "intent_correct": 0,
         "stack_correct": 0,
         "slot_correct": 0,
+        "execution_mode_correct": 0,
         "failures": [],
     }
 
@@ -38,11 +39,13 @@ def run_eval_cases(cases_dir: str | Path, fixtures_dir: str | Path) -> dict[str,
         intent_ok = task.intent == expected["intent"]
         stack_ok = actual_stack == expected["stack"]
         slot_ok = task.requires_user_input == expected["requires_user_input"]
+        execution_mode_ok = task.execution_mode == expected.get("execution_mode", "")
 
         totals["intent_correct"] += int(intent_ok)
         totals["stack_correct"] += int(stack_ok)
         totals["slot_correct"] += int(slot_ok)
-        if intent_ok and stack_ok and slot_ok:
+        totals["execution_mode_correct"] += int(execution_mode_ok)
+        if intent_ok and stack_ok and slot_ok and execution_mode_ok:
             totals["passed"] += 1
         else:
             totals["failures"].append(
@@ -51,6 +54,7 @@ def run_eval_cases(cases_dir: str | Path, fixtures_dir: str | Path) -> dict[str,
                     "intent_ok": intent_ok,
                     "stack_ok": stack_ok,
                     "slot_ok": slot_ok,
+                    "execution_mode_ok": execution_mode_ok,
                 }
             )
 
@@ -62,5 +66,6 @@ def run_eval_cases(cases_dir: str | Path, fixtures_dir: str | Path) -> dict[str,
         "intent_accuracy": totals["intent_correct"] / count,
         "stack_detection_accuracy": totals["stack_correct"] / count,
         "slot_filling_accuracy": totals["slot_correct"] / count,
+        "execution_mode_accuracy": totals["execution_mode_correct"] / count,
         "failures": totals["failures"],
     }

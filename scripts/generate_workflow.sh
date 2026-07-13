@@ -164,6 +164,8 @@ outputs=(
   "docs/process/failure-taxonomy.md"
   "docs/process/badcase-analysis.md"
   "docs/acceptance_simulator.md"
+  "docs/workflow-capabilities.md"
+  "docs/test-cases/README.md"
   "docs/coding-progress.md"
   "docs/feature_list.json"
   "docs/session-handoff.md"
@@ -193,6 +195,8 @@ workflow_ignore_paths=(
   "/docs/index.md"
   "/docs/verification.md"
   "/docs/acceptance_simulator.md"
+  "/docs/workflow-capabilities.md"
+  "/docs/test-cases/"
   "/docs/coding-progress.md"
   "/docs/feature_list.json"
   "/docs/session-handoff.md"
@@ -470,6 +474,69 @@ initialize_project_docs() {
   } > "$constraints"
 }
 
+initialize_workflow_capabilities_doc() {
+  local capabilities="$TARGET_ROOT/docs/workflow-capabilities.md"
+  local patrol_status="disabled"
+  local codegraph_status="disabled"
+  local opendesign_status="disabled"
+
+  if [ "$PATROL_ENABLED" -eq 1 ]; then
+    patrol_status="enabled"
+  fi
+  if [ "$CODEGRAPH_ENABLED" -eq 1 ]; then
+    codegraph_status="enabled"
+  fi
+  if [ "$OPENDESIGN_ENABLED" -eq 1 ]; then
+    opendesign_status="enabled"
+  fi
+
+  {
+    printf '# 主动功能使用说明\n\n'
+    printf '## 什么时候读\n\n'
+    printf '想知道当前工作流能主动执行什么动作、怎么触发、默认作用到哪里时读取。\n\n'
+    printf '## 当前项目概况\n\n'
+    printf -- '- 项目名称：`%s`\n' "$PROJECT_NAME"
+    printf -- '- 项目根目录：`%s`\n' "$PROJECT_ROOT_FOR_TEMPLATE"
+    printf -- '- 技术栈：`%s`\n' "$STACK_NAME"
+    printf -- '- 默认目标：当前工作目录所在项目。\n\n'
+    printf '## 主动功能\n\n'
+    printf '| 功能 | 状态 | 对话触发方式 | 默认目标 | 产出 |\n'
+    printf '| --- | --- | --- | --- | --- |\n'
+    printf '| 项目深度扫描并回填 | enabled | `进行项目深度扫描并回填` | 当前工作目录项目 | `docs/project/*`、`.agent/traces/*-recon-project.json` |\n'
+    printf '| 校验当前工作流 | enabled | `校验当前工作流` | 当前工作目录项目 | 运行 `scripts/validate_target.sh` |\n'
+    printf '| 同步当前工作流到最新版 | enabled | `同步当前工作流到最新版` | 当前工作目录项目 | 工作流升级 dry-run 或 apply |\n'
+    printf '| 修复或补齐当前工作流 | enabled | `修复当前工作流` / `补齐当前工作流` | 当前工作目录项目 | 补齐缺失 workflow 文件 |\n'
+    printf '| 测试用例驱动验证 | enabled | `需要测试用例` / `根据需求生成测试用例并执行测试` | 当前需求 | `docs/test-cases/<requirement-id>.md`、自动化测试与验收证据 |\n'
+    printf '| Patrol 验收 | %s | `用 Patrol 验证这个需求` | 当前需求 | `docs/testing/patrol.md`、验收证据 |\n' "$patrol_status"
+    printf '| CodeGraph 影响分析 | %s | `用 CodeGraph 做影响分析` | 当前需求 | `docs/tools/codegraph.md` 指引与分析证据 |\n' "$codegraph_status"
+    printf '| Open Design 设计链路 | %s | `用 Open Design 生成设计稿` | 当前需求 | `docs/tools/opendesign.md` 指引与设计证据 |\n\n' "$opendesign_status"
+    printf '## 项目深度扫描默认策略\n\n'
+    printf -- '- 默认只补充缺失信息，不改已有描述。\n'
+    printf -- '- 如果扫描结论会改动现有文字描述，应先向用户确认。\n'
+    printf -- '- 脚本入口：`scripts/recon_project.sh <target-project-path>`；在对话里优先通过 Agent 触发。\n\n'
+    printf '## 测试用例驱动验证\n\n'
+    printf -- '- 当前状态：`enabled`。\n'
+    printf -- '- 默认关闭：未明确提出测试用例要求时，不启用、不提醒，继续使用项目默认验证配置。\n'
+    printf -- '- 开发前模式：需求解析后生成测试用例，用户确认后先生成自动化测试，再开发并复测。\n'
+    printf -- '- 开发后模式：用户提供已完成需求时，根据原始需求生成测试用例，确认后直接生成并运行测试。\n'
+    printf -- '- 需求依据：测试目标来自原始需求和验收标准，不能根据现有实现反向削弱断言。\n'
+    printf -- '- 人工降级：无法自动化时记录原因、步骤、环境、证据和剩余风险，可人工验收完成。\n'
+    printf -- '- 主要产出：`docs/test-cases/<requirement-id>.md`、自动化测试文件、`docs/reports/test-report.md` 和验收证据。\n\n'
+    printf '## 最近一次项目深度扫描\n\n'
+    printf '<!-- BEGIN AUTO-RECON:capabilities -->\n'
+    printf -- '- 尚未运行项目深度扫描。\n'
+    printf '<!-- END AUTO-RECON:capabilities -->\n\n'
+    printf '## 文档路由\n\n'
+    printf '| 场景 | 读取 |\n'
+    printf '| --- | --- |\n'
+    printf '| 看项目结构 | `docs/project/structure/overview.md` |\n'
+    printf '| 看架构边界 | `docs/project/structure/architecture.md` |\n'
+    printf '| 看功能模块 | `docs/project/features/overview.md` |\n'
+    printf '| 看项目规则 | `docs/project/constraints.md` |\n'
+    printf '| 看 UI/交互约定 | `docs/project/frontend.md` |\n'
+  } > "$capabilities"
+}
+
 resolve_patrol_enabled() {
   if [ "$STACK_NAME" != "flutter" ]; then
     return 1
@@ -690,6 +757,8 @@ render_template "$KIT_ROOT/templates/base/docs/process/verification.md.template"
 render_template "$KIT_ROOT/templates/base/docs/process/failure-taxonomy.md.template" "$TARGET_ROOT/docs/process/failure-taxonomy.md"
 render_template "$KIT_ROOT/templates/base/docs/process/badcase-analysis.md.template" "$TARGET_ROOT/docs/process/badcase-analysis.md"
 render_template "$KIT_ROOT/templates/base/docs/acceptance_simulator.md.template" "$TARGET_ROOT/docs/acceptance_simulator.md"
+initialize_workflow_capabilities_doc
+render_template "$KIT_ROOT/templates/base/docs/test-cases/README.md.template" "$TARGET_ROOT/docs/test-cases/README.md"
 render_template "$KIT_ROOT/templates/base/docs/coding-progress.md.template" "$TARGET_ROOT/docs/coding-progress.md"
 render_template "$KIT_ROOT/templates/base/docs/feature_list.json.template" "$TARGET_ROOT/docs/feature_list.json"
 render_template "$KIT_ROOT/templates/base/docs/session-handoff.md.template" "$TARGET_ROOT/docs/session-handoff.md"

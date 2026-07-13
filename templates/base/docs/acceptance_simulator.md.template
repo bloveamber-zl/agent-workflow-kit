@@ -7,6 +7,8 @@
 
 Flutter 项目会优先尝试识别本机 iOS 模拟器；其他项目默认使用技术栈的启动命令。必要时用 `ACCEPTANCE_COMMAND` 指定真实验收命令。
 
+Flutter 项目启动前会检查 `.vscode/launch.json` 和 `define_config/.custom.json`。如果存在本地启动参数，脚本会按目标平台优先复用 launch `args`，并把 `define_config/.custom.json` 作为通用 `--dart-define-from-file`。显式环境变量优先级更高。
+
 ## 推荐命令
 
 ```bash
@@ -24,6 +26,15 @@ ACCEPTANCE_KEEP_RUNNING=1 scripts/acceptance_simulator.sh
 
 ```bash
 ACCEPTANCE_COMMAND='{{START_COMMAND}}' scripts/acceptance_simulator.sh
+```
+
+指定 Flutter 启动配置或附加参数：
+
+```bash
+ACCEPTANCE_LAUNCH_CONFIG='<launch name>' scripts/acceptance_simulator.sh
+ACCEPTANCE_DART_DEFINE_FILE='define_config/.custom.json' scripts/acceptance_simulator.sh
+ACCEPTANCE_FLAVOR='<flavor>' scripts/acceptance_simulator.sh
+ACCEPTANCE_EXTRA_ARGS='--dart-define=KEY=VALUE' scripts/acceptance_simulator.sh
 ```
 
 Flutter 指定设备示例：

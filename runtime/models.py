@@ -11,6 +11,7 @@ class RouteResult:
     confidence: float
     requires_user_input: bool = False
     risk_level: str = "low"
+    execution_mode: str = ""
 
 
 @dataclass(frozen=True)
@@ -61,6 +62,7 @@ class StructuredTask:
     constraints: list[str]
     missing_slots: list[str]
     questions: list[str]
+    execution_mode: str = ""
 
     @property
     def requires_user_input(self) -> bool:

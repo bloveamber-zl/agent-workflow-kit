@@ -31,6 +31,7 @@ print(f"- failed: {report['failed']}")
 print(f"- intent accuracy: {report['intent_accuracy']:.2%}")
 print(f"- stack detection accuracy: {report['stack_detection_accuracy']:.2%}")
 print(f"- slot filling accuracy: {report['slot_filling_accuracy']:.2%}")
+print(f"- execution mode accuracy: {report['execution_mode_accuracy']:.2%}")
 print(f"- report: {report_path}")
 
 if report["failed"]:

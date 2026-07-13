@@ -31,12 +31,14 @@
 
 ## 项目特殊注意
 
+- Flutter 启动、模拟器验收或 E2E/Patrol 前，先检查项目根目录是否存在 `.vscode/launch.json` 和 `define_config/.custom.json`；存在时按目标平台复用 launch `args` 或通用 dart define，不要直接使用裸 `flutter run`。
 - 需求未说明验证方式时，先按 `docs/process/verification.md` 判定验证项，再写入 active plan。
 - 涉及 UI、交互、权限、文件、录音、支付或原生能力时，仅基础验证通常不足以证明完成。
 - 高风险需求完成后，按 `docs/process/verification.md` 的独立复核门禁执行。
 - 自动判定验收等级 L0-L4，并记录判定依据、置信度、验证命令和未覆盖风险。
 - 增强能力按场景触发，不作为每个需求的固定步骤；触发或跳过原因要记录。
 - 如果本轮生成或新增测试用例，先做测试用例自验证，再用测试验证代码。
+- Flutter 项目配置 Patrol 时，开发完成后可由用户选择 Patrol 自动化验收；选择后按 `docs/testing/patrol.md` 生成需求级用例并运行。
 
 ## E2E / Patrol
 
@@ -45,6 +47,34 @@
 - 说明：{{E2E_SETUP_NOTE}}
 
 Flutter 项目如果已生成 `docs/testing/patrol.md`，L3/L4 场景优先读取该文档。未配置 Patrol 时，不要把 Patrol 标记为已覆盖；应记录未覆盖原因，并退回本地/模拟器验收。
+
+用户明确选择 Patrol 时，优先通过 `PATROL_TARGET=patrol_test/<requirement-id>_test.dart scripts/patrol_acceptance.sh` 运行当前需求用例，并把 `evidence.json` 写回测试报告和追踪矩阵。
+
+## Flutter 启动配置
+
+启动参数优先级：
+
+1. 显式环境变量或命令行参数，例如 `ACCEPTANCE_COMMAND`、`ACCEPTANCE_DART_DEFINE_FILE`、`ACCEPTANCE_FLAVOR`、`PATROL_DART_DEFINE_FILE`、`PATROL_FLAVOR`。
+2. `.vscode/launch.json` 中与目标平台匹配的 Dart launch 配置。
+3. `define_config/.custom.json`，作为通用 `--dart-define-from-file`。
+4. 技术栈默认启动命令。
+
+平台匹配规则：
+
+- iOS 优先选择名称包含 `ios` 的 Dart launch 配置；没有时选择不含 `--flavor` 的配置。
+- Android 优先选择名称包含 `android` 的 Dart launch 配置；没有时选择含 `--flavor` 的配置。
+- 如果仍无法判断，记录已采用的默认配置和未覆盖风险。
+
+本地/模拟器验收脚本支持：
+
+```bash
+ACCEPTANCE_LAUNCH_CONFIG='<launch name>' scripts/acceptance_simulator.sh
+ACCEPTANCE_DART_DEFINE_FILE='define_config/.custom.json' scripts/acceptance_simulator.sh
+ACCEPTANCE_FLAVOR='<flavor>' scripts/acceptance_simulator.sh
+ACCEPTANCE_EXTRA_ARGS='--dart-define=KEY=VALUE' scripts/acceptance_simulator.sh
+```
+
+Patrol 验收脚本支持同类参数，详见 `docs/testing/patrol.md`。
 
 ## 证据记录位置
 

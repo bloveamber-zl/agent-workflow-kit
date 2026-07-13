@@ -38,7 +38,8 @@
 
 ## 技术限制
 
-- 待补充。
+- Flutter 项目启动、验收或 Patrol 前，必须先检查 `.vscode/launch.json` 和 `define_config/.custom.json`；有项目本地启动参数时优先复用，不要忽略 dart define、flavor、scheme 或环境参数。
+- 不要把私有账号、密钥、个人机器路径写入 launch 配置、测试报告或模板文档。
 
 ## 安全与隐私
 

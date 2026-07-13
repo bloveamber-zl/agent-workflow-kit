@@ -1,0 +1,11 @@
+{
+  "id": "test_case_pre_implementation",
+  "input": "这个需求需要测试用例",
+  "fixture": "workflow_project",
+  "expected": {
+    "intent": "test_case_workflow",
+    "stack": "node",
+    "requires_user_input": false,
+    "execution_mode": "pre_implementation"
+  }
+}

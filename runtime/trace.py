@@ -11,7 +11,7 @@ def write_trace(target_path: str | Path, intent: str, user_request: str, nodes: 
     root = Path(target_path).resolve()
     trace_dir = root / ".agent/traces"
     trace_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y-%m-%d-%H%M%S")
+    timestamp = datetime.now().strftime("%Y-%m-%d-%H%M%S-%f")
     trace_path = trace_dir / f"{timestamp}-{intent}.json"
     data = {
         "task_id": f"{timestamp}-{intent}",

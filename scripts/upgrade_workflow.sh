@@ -223,6 +223,7 @@ update_files=(
   "docs/process/verification.md"
   "docs/process/failure-taxonomy.md"
   "docs/acceptance_simulator.md"
+  "docs/workflow-capabilities.md"
   "scripts/acceptance_simulator.sh"
 )
 
@@ -273,6 +274,7 @@ add_only_files=(
   "docs/exec-plans/tech-debt-tracker.md"
   "docs/reports/eval-report.md"
   "docs/reports/test-report.md"
+  "docs/test-cases/README.md"
 )
 
 workflow_ignore_paths=(
@@ -282,6 +284,7 @@ workflow_ignore_paths=(
   "/docs/index.md"
   "/docs/verification.md"
   "/docs/acceptance_simulator.md"
+  "/docs/workflow-capabilities.md"
   "/docs/coding-progress.md"
   "/docs/feature_list.json"
   "/docs/session-handoff.md"
@@ -293,6 +296,7 @@ workflow_ignore_paths=(
   "/docs/requirements/"
   "/docs/testing/"
   "/docs/tools/"
+  "/docs/test-cases/"
   "/scripts/acceptance_simulator.sh"
   "/scripts/patrol_acceptance.sh"
 )

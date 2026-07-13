@@ -41,11 +41,17 @@ grep -Fq "$KIT_ROOT" "$INSTALLED_SKILL"
 grep -Fq 'python3 -m runtime.cli run' "$INSTALLED_SKILL"
 grep -Fq '.agent/config.json' "$INSTALLED_SKILL"
 grep -Fq 'scripts/run_eval.sh' "$INSTALLED_SKILL"
+grep -Fq 'scripts/recon_project.sh' "$INSTALLED_SKILL"
 grep -Fq 'L0-L4' "$INSTALLED_SKILL"
 grep -Fq 'test-case self-validation' "$INSTALLED_SKILL"
 grep -Fq 'AGENT_WORKFLOW_PATROL' "$INSTALLED_SKILL"
 grep -Fq 'AGENT_WORKFLOW_CODEGRAPH' "$INSTALLED_SKILL"
 grep -Fq 'AGENT_WORKFLOW_OPENDESIGN' "$INSTALLED_SKILL"
+grep -Fq 'test_case_mode' "$INSTALLED_SKILL"
+grep -Fq 'pre_implementation' "$INSTALLED_SKILL"
+grep -Fq 'post_implementation' "$INSTALLED_SKILL"
+grep -Fq 'docs/test-cases/<requirement-id>.md' "$INSTALLED_SKILL"
+grep -Fq '不主动提醒' "$INSTALLED_SKILL"
 grep -Fq 'After changing agent-workflow-kit, decide whether the installed skill must be refreshed' "$INSTALLED_SKILL"
 
 echo "==> Run runtime unit tests"
@@ -53,6 +59,7 @@ cd "$KIT_ROOT"
 python3 -m unittest tests.runtime.test_runtime_mvp
 python3 -m unittest tests.runtime.test_planning_components
 python3 -m unittest tests.runtime.test_eval_runner
+python3 -m unittest tests.runtime.test_trace
 scripts/run_eval.sh
 
 for stack_file in "$KIT_ROOT"/templates/stacks/*.yaml; do
@@ -61,8 +68,33 @@ for stack_file in "$KIT_ROOT"/templates/stacks/*.yaml; do
   mkdir -p "$target"
   case "$stack" in
     flutter)
-      mkdir -p "$target/android" "$target/ios" "$target/lib" "$target/test"
+      mkdir -p "$target/android" "$target/ios" "$target/lib" "$target/test" "$target/.vscode" "$target/define_config"
       printf '%s\n' 'name: flutter_project' > "$target/pubspec.yaml"
+      cat > "$target/.vscode/launch.json" <<'JSON'
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "flutter-project-ios",
+      "request": "launch",
+      "type": "dart",
+      "args": ["--dart-define-from-file", "define_config/.custom.json"]
+    },
+    {
+      "name": "flutter-project-android",
+      "request": "launch",
+      "type": "dart",
+      "args": [
+        "--dart-define-from-file",
+        "define_config/.custom.json",
+        "--flavor",
+        "official"
+      ]
+    }
+  ]
+}
+JSON
+      printf '%s\n' '{"APP_ENV":"test"}' > "$target/define_config/.custom.json"
       ;;
     node)
       mkdir -p "$target/src" "$target/public"
@@ -85,6 +117,14 @@ for stack_file in "$KIT_ROOT"/templates/stacks/*.yaml; do
   test -f "$target/docs/process/badcase-analysis.md"
   test -f "$target/docs/process/failure-taxonomy.md"
   test -f "$target/docs/reports/eval-report.md"
+  test -f "$target/docs/workflow-capabilities.md"
+  test -f "$target/docs/test-cases/README.md"
+  grep -q 'test_case_mode' "$target/.agent/state/current-task.json"
+  grep -q '默认关闭' "$target/docs/test-cases/README.md"
+  grep -q 'post_implementation' "$target/docs/test-cases/README.md"
+  grep -q '测试用例驱动模式' "$target/docs/process/verification.md"
+  grep -q '测试用例 ID' "$target/docs/requirements/traceability.md"
+  grep -q '执行模式' "$target/docs/reports/test-report.md"
   grep -q '初始化自动侦察' "$target/docs/project/structure/overview.md"
   grep -q '初始化自动侦察' "$target/docs/project/structure/architecture.md"
   grep -q '初始化自动侦察' "$target/docs/project/features/overview.md"
@@ -99,6 +139,7 @@ for stack_file in "$KIT_ROOT"/templates/stacks/*.yaml; do
   grep -q '/docs/requirements/' "$target/.gitignore"
   grep -q '/docs/design/' "$target/.gitignore"
   grep -q '/docs/exec-plans/' "$target/.gitignore"
+  grep -q '/docs/workflow-capabilities.md' "$target/.gitignore"
   if grep -q '/docs/design/workflow-bootstrap.md' "$target/.gitignore"; then
     echo "Generated .gitignore should ignore workflow document directories, not individual dynamic docs." >&2
     exit 1
@@ -132,12 +173,29 @@ PY
   grep -q 'L4' "$target/docs/process/verification.md"
   grep -q '场景触发增强' "$target/docs/process/verification.md"
   grep -q '测试用例自验证' "$target/docs/process/verification.md"
+  grep -q '可选 Patrol 自动化验收' "$target/docs/process/verification.md"
   grep -q '验收等级' "$target/docs/reports/test-report.md"
   grep -q '增强触发' "$target/docs/reports/test-report.md"
   grep -q '证据类型' "$target/docs/reports/test-report.md"
+  grep -q 'Patrol 自动化验收' "$target/docs/reports/test-report.md"
   grep -q '验收等级' "$target/docs/requirements/traceability.md"
   grep -q '增强触发' "$target/docs/requirements/traceability.md"
+  grep -q 'Patrol 用例' "$target/docs/requirements/traceability.md"
+  grep -q '进行项目深度扫描并回填' "$target/docs/workflow-capabilities.md"
+  grep -q '测试用例驱动验证 | enabled' "$target/docs/workflow-capabilities.md"
+  grep -q '开发前模式' "$target/docs/workflow-capabilities.md"
+  grep -q '开发后模式' "$target/docs/workflow-capabilities.md"
+  grep -q '默认关闭' "$target/docs/workflow-capabilities.md"
+  printf '%s\n' 'Documenting template syntax like {{PROJECT_NAME}} is allowed in non-workflow docs.' > "$target/docs/template-variables.md"
   "$KIT_ROOT/scripts/validate_target.sh" "$target"
+
+  echo "==> Verify project recon backfill: $stack"
+  "$KIT_ROOT/scripts/recon_project.sh" "$target" >/dev/null
+  grep -q '自动侦察补充' "$target/docs/project/structure/overview.md"
+  grep -q 'BEGIN AUTO-RECON:overview' "$target/docs/project/structure/overview.md"
+  grep -q 'BEGIN AUTO-RECON:capabilities' "$target/docs/workflow-capabilities.md"
+  grep -q '测试用例驱动验证 | enabled' "$target/docs/workflow-capabilities.md"
+  grep -q '开发后模式' "$target/docs/workflow-capabilities.md"
 
   echo "==> Verify acceptance evidence dry-run: $stack"
   ACCEPTANCE_DRY_RUN=1 ACCEPTANCE_SCENARIO="startup-smoke" ACCEPTANCE_EXPECTED_PATH="打开应用首页" "$target/scripts/acceptance_simulator.sh" >/dev/null
@@ -145,6 +203,12 @@ PY
   test -f "$evidence_file"
   grep -q '"status": "dry-run"' "$evidence_file"
   grep -q '"scenario": "startup-smoke"' "$evidence_file"
+  if [ "$stack" = "flutter" ]; then
+    grep -q -- '--dart-define-from-file define_config/.custom.json' "$evidence_file"
+    ACCEPTANCE_DRY_RUN=1 ACCEPTANCE_PLATFORM=android "$target/scripts/acceptance_simulator.sh" >/dev/null
+    android_evidence_file="$(find "$target/.dart_tool/acceptance" -name evidence.json | sort | tail -n 1)"
+    grep -q -- '--flavor official' "$android_evidence_file"
+  fi
 
   echo "==> Verify task state validation: $stack"
   cp "$target/.agent/state/current-task.json" "$TMP_ROOT/current-task.$stack.json"
@@ -164,6 +228,41 @@ PY
   fi
   cp "$TMP_ROOT/current-task.$stack.json" "$target/.agent/state/current-task.json"
   "$KIT_ROOT/scripts/validate_target.sh" "$target" >/dev/null
+
+  python3 - "$target/.agent/state/current-task.json" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, encoding="utf-8") as f:
+    data = json.load(f)
+for key in ("test_case_mode", "test_case_execution_mode", "test_case_doc"):
+    data.pop(key, None)
+with open(path, "w", encoding="utf-8") as f:
+    json.dump(data, f, ensure_ascii=False, indent=2)
+    f.write("\n")
+PY
+  "$KIT_ROOT/scripts/validate_target.sh" "$target" >/dev/null
+
+  python3 - "$target/.agent/state/current-task.json" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, encoding="utf-8") as f:
+    data = json.load(f)
+data["test_case_mode"] = True
+data["test_case_execution_mode"] = "invalid"
+data["test_case_doc"] = ""
+with open(path, "w", encoding="utf-8") as f:
+    json.dump(data, f, ensure_ascii=False, indent=2)
+    f.write("\n")
+PY
+  if "$KIT_ROOT/scripts/validate_target.sh" "$target" >/tmp/agent-workflow-kit-invalid-test-case-mode.log 2>&1; then
+    echo "Expected invalid test case mode validation to fail for stack: $stack" >&2
+    exit 1
+  fi
+  cp "$TMP_ROOT/current-task.$stack.json" "$target/.agent/state/current-task.json"
 
   echo "==> Verify overwrite protection: $stack"
   if "$KIT_ROOT/scripts/generate_workflow.sh" "$target" --stack "$stack" >/tmp/agent-workflow-kit-overwrite.log 2>&1; then
@@ -193,8 +292,17 @@ test -f "$patrol_target/docs/testing/patrol.md"
 test -f "$patrol_target/scripts/patrol_acceptance.sh"
 grep -q 'patrol test' "$patrol_target/docs/testing/patrol.md"
 grep -q 'patrol test' "$patrol_target/scripts/patrol_acceptance.sh"
+grep -q '需求级用例生成' "$patrol_target/docs/testing/patrol.md"
+grep -q 'PATROL_TARGET' "$patrol_target/docs/testing/patrol.md"
+grep -q 'PATROL_DRY_RUN' "$patrol_target/scripts/patrol_acceptance.sh"
+grep -q 'dart_define_file' "$patrol_target/scripts/patrol_acceptance.sh"
 grep -q '"patrol": true' "$patrol_target/.agent/config.json"
 "$KIT_ROOT/scripts/validate_target.sh" "$patrol_target" >/dev/null
+PATROL_DRY_RUN=1 PATROL_TARGET="patrol_test/req_example_test.dart" PATROL_SCENARIO="REQ-EXAMPLE" "$patrol_target/scripts/patrol_acceptance.sh" >/dev/null
+patrol_evidence_file="$(find "$patrol_target/.dart_tool/acceptance" -name evidence.json | sort | tail -n 1)"
+test -f "$patrol_evidence_file"
+grep -q '"status": "dry-run"' "$patrol_evidence_file"
+grep -q '"target": "patrol_test/req_example_test.dart"' "$patrol_evidence_file"
 
 echo "==> Verify optional CodeGraph workflow prompt path"
 codegraph_target="$TMP_ROOT/codegraph-project"
@@ -215,6 +323,13 @@ AGENT_WORKFLOW_OPENDESIGN=yes "$KIT_ROOT/scripts/generate_workflow.sh" "$opendes
 grep -q 'Open Design' "$TMP_ROOT/opendesign-generate.log"
 test -f "$opendesign_target/docs/tools/opendesign.md"
 grep -q '用户明确要求' "$opendesign_target/docs/tools/opendesign.md"
+grep -q 'od mcp install codex --print' "$opendesign_target/docs/tools/opendesign.md"
+grep -q 'codex mcp list' "$opendesign_target/docs/tools/opendesign.md"
+grep -q '生成质量提示词' "$opendesign_target/docs/tools/opendesign.md"
+grep -q '不要 AI demo 感' "$opendesign_target/docs/tools/opendesign.md"
+grep -q '质量门禁' "$opendesign_target/docs/tools/opendesign.md"
+grep -q '\$openai-image-gateway' "$opendesign_target/docs/tools/opendesign.md"
+grep -q '素材板' "$opendesign_target/docs/tools/opendesign.md"
 grep -q '"opendesign": true' "$opendesign_target/.agent/config.json"
 "$KIT_ROOT/scripts/validate_target.sh" "$opendesign_target" >/dev/null
 
@@ -274,6 +389,10 @@ if grep -q '/docs/design/workflow-bootstrap.md' "$upgrade_target/.gitignore"; th
 fi
 test -f "$upgrade_target/docs/tools/codegraph.md"
 test -f "$upgrade_target/docs/tools/opendesign.md"
+grep -q 'od mcp install codex --print' "$upgrade_target/docs/tools/opendesign.md"
+grep -q '不要 AI demo 感' "$upgrade_target/docs/tools/opendesign.md"
+grep -q '\$openai-image-gateway' "$upgrade_target/docs/tools/opendesign.md"
+grep -q '素材板' "$upgrade_target/docs/tools/opendesign.md"
 python3 - "$upgrade_target/.agent/config.json" "$KIT_VERSION" "$TEMPLATE_REVISION" <<'PY'
 import json
 import sys
@@ -307,6 +426,9 @@ if grep -q 'refresh .agent/config.json version metadata' "$TMP_ROOT/upgrade-afte
 fi
 
 echo "==> Verify workflow upgrade adds missing generated files"
+mkdir -p "$upgrade_target/docs/test-cases"
+printf '%s\n' 'local requirement test case must stay' > "$upgrade_target/docs/test-cases/REQ-LOCAL.md"
+rm "$upgrade_target/docs/test-cases/README.md"
 rm "$upgrade_target/docs/acceptance_simulator.md"
 rm -rf "$upgrade_target/.agent"
 rm "$upgrade_target/docs/process/failure-taxonomy.md"
@@ -321,6 +443,8 @@ test -f "$upgrade_target/.agent/evals/README.md"
 test -f "$upgrade_target/docs/process/failure-taxonomy.md"
 test -f "$upgrade_target/docs/process/badcase-analysis.md"
 test -f "$upgrade_target/docs/reports/eval-report.md"
+test -f "$upgrade_target/docs/test-cases/README.md"
+grep -q 'local requirement test case must stay' "$upgrade_target/docs/test-cases/REQ-LOCAL.md"
 "$KIT_ROOT/scripts/validate_target.sh" "$upgrade_target" >/dev/null
 
 echo "==> Verify batch workflow upgrade scan"

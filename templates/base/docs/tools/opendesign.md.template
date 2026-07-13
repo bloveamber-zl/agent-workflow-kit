@@ -5,6 +5,24 @@
 - Open Design 是按需使用的设计稿生成与设计转代码辅助能力。
 - 只有用户明确说“使用 Open Design”“生成设计稿/视觉稿”或“根据 Open Design 设计稿生成代码”时，agent 才能调用 Open Design。
 - 普通 UI 需求、页面实现、样式调整和组件开发，默认只按项目现有设计系统推进，不得自动启用 Open Design。
+- 本项目文档只记录 Open Design 使用规则；Codex 的 MCP 接入必须按 Open Design 官方 installer 执行，不手写或猜测 MCP 配置。
+- 如果设计稿需要自定义视觉素材，只有在用户明确要求或确认生成素材后，才可调用 `$openai-image-gateway`；多个素材优先生成到一张素材板，再本地裁切复用，减少按张计费。
+
+## 环境检查
+
+首次使用或 Open Design 升级后，先在本机确认 Codex MCP 接入来自官方 installer：
+
+```bash
+od mcp install codex --print
+od mcp install codex
+codex mcp list
+```
+
+期望结果：
+
+- `od mcp install codex --print` 能打印将写入 Codex 的 `open-design` MCP 配置。
+- `codex mcp list` 中存在 `open-design`，且命令使用 Open Design installer 解析出的启动命令。
+- 如果 `od`、Open Design daemon 或 MCP 不可用，先修复本机 Open Design 安装，再继续设计稿流程。
 
 ## 触发条件
 
@@ -23,15 +41,79 @@
 ## 标准流程
 
 1. 记录用户原始视觉需求、目标页面、目标技术栈和验收标准。
-2. 调用 Open Design 生成或读取设计稿。
-3. 获取 Open Design artifact，记录设计稿路径、预览地址或关键文件。
-4. 对照 `docs/project/frontend.md` 和项目现有组件约定，制定实现计划。
-5. 将设计稿转成目标项目代码，优先复用现有组件、样式 token 和路由边界。
-6. 运行项目验证；涉及页面展示时，补充截图、浏览器或模拟器验收证据。
+2. 判断是否需要额外素材；如果需要，先确认是否使用 `$openai-image-gateway` 生成素材。
+3. 调用 Open Design 生成或读取设计稿。
+4. 获取 Open Design artifact，记录设计稿路径、预览地址或关键文件。
+5. 对照 `docs/project/frontend.md` 和项目现有组件约定，制定实现计划。
+6. 将设计稿转成目标项目代码，优先复用现有组件、样式 token 和路由边界。
+7. 运行项目验证；涉及页面展示时，补充截图、浏览器或模拟器验收证据。
+
+## 生成质量提示词
+
+当用户要求使用 Open Design 生成设计稿时，必须把以下质量约束合入 brief 或 run prompt；不能只要求“覆盖页面”：
+
+```text
+目标是生成真实可上线产品级设计稿，不要 AI demo 感。
+
+设计必须：
+- 像对应行业里的真实产品，而不是通用 SaaS 模板或后台管理系统。
+- 使用该业务领域的真实字段、真实状态、真实操作流和真实内容密度。
+- 让每个核心页面都有至少一个场景化信息模块，例如照片/凭证/附件、时间线、地图、清单、票据、素材缩略图、操作记录或领域专属摘要。
+- 建立明确视觉记忆点：行业相关材质、封面图、局部纹理、品牌色克制使用、稳定 typography 和 spacing。
+- 保持可实现：组件边界清楚，状态、空态、错误态、加载态和权限态可落地。
+
+禁止：
+- 不要泛用 AI/SaaS 仪表盘、营销 hero、渐变光斑、玻璃拟态、悬浮大卡片堆叠。
+- 不要只用浅灰背景、圆角卡片和状态 chip 表达所有信息。
+- 不要空泛文案，例如“智能洞察”“效率提升”“一站式管理”，除非项目需求明确要求。
+- 不要把页面做成设计说明板；第一屏必须是可使用的产品界面。
+- 不要因为追求质感牺牲信息层级、可读性、可访问性和移动端安全区。
+```
+
+如果项目已有品牌、截图、竞品、设计系统或真实素材，必须优先绑定这些输入；没有时，按产品领域主动补充合理的视觉语义，但不得编造品牌资产或使用不可公开素材。
+
+## 素材生成
+
+当 Open Design brief 需要图标、产品图、插画、封面、纹理、空状态图或其他视觉素材，并且项目没有合适素材时：
+
+1. 先向用户确认是否生成素材，因为 `$openai-image-gateway` 按图片张数计费。
+2. 多个素材默认生成一张高分辨率 asset board / contact sheet / atlas。
+3. 素材板要求网格排列、单格单素材、边距清晰、风格一致、无文字标签、无水印，便于后续裁切。
+4. 生成后保留原始素材板路径，并在 active plan、`docs/requirements/traceability.md` 或 `docs/reports/test-report.md` 记录用途和拆分结果。
+
+素材板 prompt 模式：
+
+```text
+Create one high-resolution asset board containing [N] isolated design assets for [project/context].
+Arrange them in a [rows x columns] grid with generous padding and clean separation.
+Keep style consistent: [style].
+No text, labels, logos, or watermarks.
+Each cell should contain one complete asset, centered, with clean edges for later cropping.
+```
+
+## 质量门禁
+
+Open Design 产物生成后，必须在 active plan 或测试报告中记录以下自评；任一核心项低于 4/5 时，不得把该稿标为最终稿，应重写 brief 后重新生成或迭代：
+
+| 维度 | 合格标准 |
+| --- | --- |
+| 质感 | 看起来像真实可上线产品，不像线框图、模板页或一次性 demo |
+| 去 AI 味 | 没有泛用渐变、空泛文案、同质化卡片堆叠和无业务意义装饰 |
+| 行业识别度 | 用户一眼能看出这是当前业务领域的产品 |
+| 信息密度 | 真实字段、状态、数据和操作足够支撑目标用户工作流 |
+| 可实现性 | 组件、状态、响应式和平台约束能被目标项目落地 |
+
+截图验收时至少检查：
+
+- 首屏是否有真实业务主任务，而不是欢迎页或营销页。
+- 是否存在领域专属视觉元素或信息模块。
+- 页面之间是否有明显层级差异，而不是每页都像设置列表。
+- 文字是否具体、短、可执行，避免泛泛功能介绍。
 
 ## 记录要求
 
 - 在 active plan 中记录 Open Design 的触发语句和用户确认来源。
+- 如调用 `$openai-image-gateway`，记录用户对素材生成的确认、素材板路径、拆分方式和费用风险说明。
 - 在 `docs/requirements/traceability.md` 记录设计稿到实现和验证证据的对应关系。
 - 在 `docs/reports/test-report.md` 记录预览、截图或验收命令结果。
 - 如果 Open Design 不可用，记录 fallback：按文字需求和项目现有设计系统手动实现。

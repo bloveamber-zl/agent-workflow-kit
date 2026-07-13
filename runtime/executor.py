@@ -12,6 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 def execute_workflow_action(intent: str, context: ProjectContext, apply_upgrade: bool = False) -> CommandResult:
     if intent == "validate_workflow":
         command = [str(ROOT / "scripts/validate_target.sh"), str(context.target_path)]
+    elif intent == "recon_project":
+        command = [str(ROOT / "scripts/recon_project.sh"), str(context.target_path)]
     elif intent in {"upgrade_workflow", "repair_workflow"} or (intent == "generate_workflow" and context.has_workflow):
         command = [str(ROOT / "scripts/upgrade_workflow.sh"), str(context.target_path), "--stack", context.detected_stack]
         if apply_upgrade or intent == "repair_workflow":

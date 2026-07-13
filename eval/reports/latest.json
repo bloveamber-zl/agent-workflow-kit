@@ -1,9 +1,10 @@
 {
-  "cases": 3,
-  "passed": 3,
+  "cases": 5,
+  "passed": 5,
   "failed": 0,
   "intent_accuracy": 1.0,
   "stack_detection_accuracy": 1.0,
   "slot_filling_accuracy": 1.0,
+  "execution_mode_accuracy": 1.0,
   "failures": []
 }
