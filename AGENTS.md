@@ -7,19 +7,18 @@
 - 项目名称：`agent-workflow-kit`
 - 项目根目录：`/Users/Lin/project/agent-workflow-kit`
 - 技术栈：`generic`
-- 生成日期：`2026-07-07`
-- 项目目标：维护可复用的 agent 工作流模板和生成脚本，让 Codex 或其他 coding agent 能为不同技术栈项目生成一致的开工、验证、记录和交接流程。
+- 生成日期：`2026-07-13`
 
 ## 项目偏好
 
 - 默认中文回复，言简意赅。
-- 优先保持模板通用，不把单个业务项目的规则写死到 base 模板。
-- 脚本保持无外部依赖；默认使用 Bash、awk、perl、python3 等常见系统工具。
 - 优先使用轻量验证，避免默认执行完整构建、签名、发布或高成本命令。
 - 按需使用 Plan Mode 或 Subagent；只有任务可并行且边界清晰时才拆分。
-- 若编码、修复、重构或评审，按需使用 `superpowers` 和项目适用的编码准则。
+- 若编码、修复、重构或评审，按项目适用的编码准则执行，保持最小改动并完成验证。
+- Flutter/Dart 开发、测试、布局、依赖、运行时错误场景优先检查并使用对应 Flutter/Dart skill。
+- 涉及 HarmonyOS Fork 或 Adapter 时，按需查询 `/Users/Lin/project/flutter-ohos-plugins` 的登记与同步规则；不得把该私有路径写入通用模板。
 - Open Design 只能在用户明确要求使用 Open Design、设计稿、视觉稿或基于 Open Design 生成代码时调用；默认 UI 需求不得自动启用。
-- 若提交 Git，提交信息用中文，并包含问题/需求描述、修复/实现思路或复现路径。
+- 若提交 Git，提交信息用中文，并包含问题/需求描述、修复/实现思路或复现路径。常用前缀：`feat:`、`fix:`、`optimize:`、`docs:`、`chore:`。
 
 ## 开工入口
 
@@ -42,14 +41,11 @@
 
 - 一次只做一个功能或一个明确修复。
 - 不要因为“代码已经写了”就把功能标记为完成。
-- 不覆盖已有模板语义，除非同步更新文档说明。
-- 生成脚本默认不得覆盖目标项目已有文件，除非用户显式传 `--force`。
-- 技术栈配置只放命令差异；通用流程应留在 `templates/base`。
-- 不把密钥、账号、私有路径写入模板。
-- 新增模板变量时，同时更新 `docs/template-variables.md`、`README.md` 和 `scripts/generate_workflow.sh`。
-- 修改生成行为后，运行 `scripts/self_test.sh`。
+- 除非为了消除当前 blocker 的窄范围修复，否则不要扩大到其他功能。
+- 实现过程中不要悄悄改弱验证规则。
 - 优先依赖仓库里的持久化文件，而不是聊天记录。
 - 不要还原或清理你没有制造的未提交改动。
+- 会批量改写生成文件、格式化全仓或清理工作树的命令必须先说明风险，再按需执行。
 - `docs/feature_list.json` 只做项目级需求索引；详细步骤属于 active plan。
 - `docs/coding-progress.md` 只做会话级进度日志；完整计划和证据属于 active plan、traceability 和报告。
 - 非 trivial 任务要维护 `.agent/state/current-task.json`；状态只使用 `intake`、`understanding`、`designing`、`planning`、`approved`、`implementing`、`verifying`、`done`、`blocked`。
@@ -81,9 +77,6 @@ requirements -> project understanding -> design -> exec plan -> user approval ->
 - 严格验证：`VERIFY_MODE=analyze ./init.sh`
 - 测试验证：`VERIFY_MODE=test ./init.sh`
 - 本地/模拟器验收：`scripts/acceptance_simulator.sh`
-- kit 自测：`scripts/self_test.sh`
-- 单目标校验：`scripts/validate_target.sh <target-project-path>`
-- 生成测试：`scripts/generate_workflow.sh <target-project-path> --stack generic`
 - 验证失败或任务阻塞：读 `docs/process/failure-taxonomy.md`，并把证据记录到 active plan、`docs/reports/test-report.md` 或 `.agent/traces/`。
 - Agent 链路输出与预期不一致：读 `docs/process/badcase-analysis.md`，并把 eval 或复测结果记录到 `docs/reports/eval-report.md`。
 

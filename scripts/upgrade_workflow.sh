@@ -127,6 +127,40 @@ resolve_patrol_enabled() {
   esac
 }
 
+resolve_harmonyos_enabled() {
+  if [ "$STACK" != "flutter" ]; then
+    return 1
+  fi
+
+  local mode="${AGENT_WORKFLOW_HARMONYOS:-ask}"
+  case "$mode" in
+    yes|true|1)
+      return 0
+      ;;
+    no|false|0)
+      return 1
+      ;;
+    ask|"")
+      if [ -t 0 ] && [ -t 1 ]; then
+        printf '%s\n' "检测到 Flutter 工作流。是否生成或刷新 HarmonyOS/Flutter-OH 依赖适配支持文件？[y/N]"
+        local answer
+        read -r answer || answer=""
+        case "$answer" in
+          y|Y|yes|YES)
+            return 0
+            ;;
+        esac
+      fi
+      return 1
+      ;;
+    *)
+      echo "Invalid AGENT_WORKFLOW_HARMONYOS value: $mode" >&2
+      echo "Allowed values: ask, yes, no" >&2
+      exit 1
+      ;;
+  esac
+}
+
 resolve_codegraph_enabled() {
   local mode="${AGENT_WORKFLOW_CODEGRAPH:-ask}"
   case "$mode" in
@@ -192,6 +226,11 @@ if resolve_patrol_enabled; then
   PATROL_ENV=yes
 fi
 
+HARMONYOS_ENV=no
+if resolve_harmonyos_enabled; then
+  HARMONYOS_ENV=yes
+fi
+
 CODEGRAPH_ENV=no
 if resolve_codegraph_enabled; then
   CODEGRAPH_ENV=yes
@@ -210,7 +249,7 @@ trap cleanup EXIT
 
 generated="$TMP_ROOT/generated"
 mkdir -p "$generated"
-AGENT_WORKFLOW_PATROL="$PATROL_ENV" AGENT_WORKFLOW_CODEGRAPH="$CODEGRAPH_ENV" AGENT_WORKFLOW_OPENDESIGN="$OPENDESIGN_ENV" "$KIT_ROOT/scripts/generate_workflow.sh" "$generated" --stack "$STACK" --project-name "$PROJECT_NAME" --project-root "$TARGET_ROOT" >/dev/null
+AGENT_WORKFLOW_PATROL="$PATROL_ENV" AGENT_WORKFLOW_HARMONYOS="$HARMONYOS_ENV" AGENT_WORKFLOW_CODEGRAPH="$CODEGRAPH_ENV" AGENT_WORKFLOW_OPENDESIGN="$OPENDESIGN_ENV" "$KIT_ROOT/scripts/generate_workflow.sh" "$generated" --stack "$STACK" --project-name "$PROJECT_NAME" --project-root "$TARGET_ROOT" >/dev/null
 
 # Files in this list are common workflow entrypoints. In semi-automatic mode
 # they can be refreshed from templates because they should not carry project
@@ -231,6 +270,13 @@ if [ "$PATROL_ENV" = "yes" ]; then
   update_files+=(
     "docs/testing/patrol.md"
     "scripts/patrol_acceptance.sh"
+  )
+fi
+
+if [ "$HARMONYOS_ENV" = "yes" ]; then
+  update_files+=(
+    "docs/testing/harmonyos.md"
+    "scripts/harmonyos_acceptance.sh"
   )
 fi
 
@@ -277,6 +323,13 @@ add_only_files=(
   "docs/test-cases/README.md"
 )
 
+if [ "$HARMONYOS_ENV" = "yes" ]; then
+  add_only_files+=(
+    "docs/platforms/harmonyos.md"
+    "docs/platforms/harmonyos-dependency-matrix.md"
+  )
+fi
+
 workflow_ignore_paths=(
   "/.agent/"
   "/AGENTS.md"
@@ -295,10 +348,12 @@ workflow_ignore_paths=(
   "/docs/reports/"
   "/docs/requirements/"
   "/docs/testing/"
+  "/docs/platforms/"
   "/docs/tools/"
   "/docs/test-cases/"
   "/scripts/acceptance_simulator.sh"
   "/scripts/patrol_acceptance.sh"
+  "/scripts/harmonyos_acceptance.sh"
 )
 
 write_workflow_gitignore_block() {
@@ -441,6 +496,7 @@ echo "==> $mode_label workflow upgrade"
 echo "Target: $TARGET_ROOT"
 echo "Stack: $STACK"
 echo "Patrol: $PATROL_ENV"
+echo "HarmonyOS: $HARMONYOS_ENV"
 echo "CodeGraph: $CODEGRAPH_ENV"
 echo "Open Design: $OPENDESIGN_ENV"
 

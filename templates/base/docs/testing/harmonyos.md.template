@@ -1,0 +1,28 @@
+# HarmonyOS 依赖适配验收
+
+## 什么时候读
+
+当前需求涉及 Flutter-OH 构建、原生插件、Platform Channel、FFI、权限、文件、相机、媒体、WebView、支付或系统能力时读取。
+
+## 最低证据
+
+每个受影响原生插件必须记录：
+
+1. `flutter analyze` 与相关 Dart/Widget 测试。
+2. `flutter build hap --target-platform ohos-arm64` 成功。
+3. 真机关键路径，包含设备、系统版本、步骤、结果和日志或截图。
+4. 依赖兼容台账中的版本、`ohos` 实现和未覆盖风险。
+
+Patrol 可作为补充自动化证据，但不能标记为鸿蒙端已覆盖。
+
+## 验收脚本
+
+```bash
+HARMONYOS_ACTION=build HARMONYOS_BUILD_MODE=debug scripts/harmonyos_acceptance.sh
+HARMONYOS_ACTION=run HARMONYOS_DEVICE='<device-id>' scripts/harmonyos_acceptance.sh
+HARMONYOS_ACTION=install HARMONYOS_DEVICE='<device-id>' HARMONYOS_HAP_PATH='<signed.hap>' scripts/harmonyos_acceptance.sh
+```
+
+可选变量：`HARMONYOS_LOCAL_ENGINE_ARGS`、`HARMONYOS_EXTRA_ARGS`、`HARMONYOS_DRY_RUN=1`、`HARMONYOS_SCENARIO`。
+
+脚本输出位于 `.dart_tool/acceptance/<timestamp>/`。签名、账号、设备授权和私有 SDK 路径由项目环境管理，不写入脚本或证据。

@@ -17,6 +17,7 @@
 - `docs/acceptance_simulator.md`
 - `docs/workflow-capabilities.md`
 - `docs/testing/patrol.md`：Flutter 项目选择 Patrol 验收支持时生成
+- `docs/platforms/harmonyos.md`、`docs/platforms/harmonyos-dependency-matrix.md`、`docs/testing/harmonyos.md`：Flutter 项目选择 HarmonyOS/Flutter-OH 依赖适配支持时生成
 - `docs/tools/opendesign.md`：选择 Open Design 可选增强时生成，只在用户明确要求 Open Design 时使用
 - `docs/coding-progress.md`
 - `docs/feature_list.json`
@@ -29,6 +30,7 @@
 - `docs/reports/test-report.md`
 - `scripts/acceptance_simulator.sh`
 - `scripts/patrol_acceptance.sh`：Flutter 项目选择 Patrol 验收支持时生成
+- `scripts/harmonyos_acceptance.sh`：Flutter 项目选择 HarmonyOS/Flutter-OH 依赖适配支持时生成
 
 生成或升级工作流时，脚本会在目标项目 `.gitignore` 中写入 `agent-workflow-kit` 忽略块，默认不把这些工作流文件纳入版本管理。`docs/requirements/`、`docs/design/`、`docs/exec-plans/`、`docs/reports/` 等动态文档目录使用目录级忽略，后续新增文档也会自动忽略。
 
@@ -70,6 +72,14 @@ Flutter 项目初始化或升级时，脚本会在交互式终端询问是否生
 AGENT_WORKFLOW_PATROL=ask scripts/generate_workflow.sh /path/to/project --stack flutter
 AGENT_WORKFLOW_PATROL=yes scripts/generate_workflow.sh /path/to/project --stack flutter
 AGENT_WORKFLOW_PATROL=no scripts/generate_workflow.sh /path/to/project --stack flutter
+```
+
+Flutter 项目也可显式生成 HarmonyOS/Flutter-OH 三方库适配支持。该增强默认关闭；启用后提供依赖兼容台账、Adapter/Fork 决策规则和构建、运行、安装的证据脚本，不安装 SDK、不处理签名，也不替代真实项目的逐库真机验收：
+
+```bash
+AGENT_WORKFLOW_HARMONYOS=ask scripts/generate_workflow.sh /path/to/project --stack flutter
+AGENT_WORKFLOW_HARMONYOS=yes scripts/generate_workflow.sh /path/to/project --stack flutter
+AGENT_WORKFLOW_HARMONYOS=no scripts/generate_workflow.sh /path/to/project --stack flutter
 ```
 
 初始化或升级时也可以生成 CodeGraph 可选增强说明。该流程只生成 `docs/tools/codegraph.md` 和配置记录，不会静默安装 CodeGraph：
@@ -122,7 +132,7 @@ scripts/upgrade_all_workflows.sh --apply
 
 半自动升级会刷新通用入口文件，例如 `AGENTS.md`、`init.sh`、`docs/index.md`、验证说明、失败归因说明和 `scripts/acceptance_simulator.sh`。项目状态、trace、eval 和项目适配文件只补缺失，不覆盖已有内容，例如 `.agent/state/current-task.json`、`.agent/config.json`、`.agent/traces/`、`.agent/evals/`、`docs/coding-progress.md`、`docs/feature_list.json`、`docs/requirements/`、`docs/design/`、`docs/exec-plans/`、`docs/reports/` 和 `docs/project/`。
 
-如果 Flutter 项目选择 Patrol 支持，升级脚本会额外生成或刷新 `docs/testing/patrol.md` 和 `scripts/patrol_acceptance.sh`。如果选择 CodeGraph 支持，会生成或刷新 `docs/tools/codegraph.md`。如果选择 Open Design 支持，会生成或刷新 `docs/tools/opendesign.md`。
+如果 Flutter 项目选择 Patrol 支持，升级脚本会额外生成或刷新 `docs/testing/patrol.md` 和 `scripts/patrol_acceptance.sh`。如果选择 HarmonyOS 支持，会生成或刷新 `docs/platforms/harmonyos.md`、`docs/platforms/harmonyos-dependency-matrix.md`、`docs/testing/harmonyos.md` 和 `scripts/harmonyos_acceptance.sh`。如果选择 CodeGraph 支持，会生成或刷新 `docs/tools/codegraph.md`。如果选择 Open Design 支持，会生成或刷新 `docs/tools/opendesign.md`。
 
 升级脚本应用变更时也会补齐或刷新 `.gitignore` 的 workflow 忽略块；已存在旧的文件级规则时会替换为当前目录级规则。
 
@@ -213,6 +223,8 @@ scripts/install_codex_skill.sh
 测试用例驱动模式是另一个显式增强：默认不启用、不提醒。开发前模式先确认需求级用例、生成失败测试再实现；开发后模式根据原始需求生成用例并直接验证现有实现，不伪造历史红灯。无法自动化时必须记录原因和人工验收证据。
 
 Flutter 项目启用 Patrol 支持后，用户可在开发完成后选择“用 Patrol 验证这个需求”。工作流会要求 Agent 根据需求验收点生成或更新 `patrol_test/<requirement-id>_test.dart`，补必要稳定定位点，运行 `scripts/patrol_acceptance.sh`，并把 `summary.md`、`evidence.json`、日志和未覆盖风险写回 active plan、`docs/requirements/traceability.md` 和 `docs/reports/test-report.md`。
+
+Flutter 项目启用 HarmonyOS 支持后，涉及原生插件时先维护 `docs/platforms/harmonyos-dependency-matrix.md`，再按 `docs/testing/harmonyos.md` 执行构建和真机关键路径。纯 Dart 依赖也需要检查平台分支；原生插件必须有 `ohos` 声明与 ArkTS/HAR 实现。需要 Fork 时，在自有可追溯仓库维护实现，禁止修改 `pub-cache`。
 
 Flutter 启动和验收会优先检查 `.vscode/launch.json` 与 `define_config/.custom.json`。如果项目提供了平台相关 launch args，工作流要求 Agent 按 iOS、Android 等目标平台选择对应配置，并把实际启动参数写入验收记录；通用模板不写死任何单项目 flavor 或 dart define。
 

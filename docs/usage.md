@@ -16,13 +16,16 @@ cd /path/to/project
 
 ## 可选增强
 
-Flutter 项目可按需生成 Patrol 验收支持；任何项目都可按需生成 CodeGraph 或 Open Design 说明文件。非交互环境建议显式传环境变量，避免默认跳过：
+Flutter 项目可按需生成 Patrol 验收或 HarmonyOS/Flutter-OH 依赖适配支持；任何项目都可按需生成 CodeGraph 或 Open Design 说明文件。非交互环境建议显式传环境变量，避免默认跳过：
 
 ```bash
 AGENT_WORKFLOW_PATROL=yes scripts/generate_workflow.sh /path/to/project --stack flutter
+AGENT_WORKFLOW_HARMONYOS=yes scripts/generate_workflow.sh /path/to/project --stack flutter
 AGENT_WORKFLOW_CODEGRAPH=yes scripts/generate_workflow.sh /path/to/project --stack node
 AGENT_WORKFLOW_OPENDESIGN=yes scripts/generate_workflow.sh /path/to/project --stack node
 ```
+
+HarmonyOS 增强生成 `docs/platforms/harmonyos.md`、依赖兼容台账、验收说明和 `scripts/harmonyos_acceptance.sh`。它只提供可复现的项目级入口；每个原生插件仍须在真实设备上留下构建与关键路径证据。需要 Fork 时在自有仓库维护，禁止修改 `pub-cache`。
 
 Open Design 仅生成 `docs/tools/opendesign.md` 和配置记录，不会静默安装 MCP。Codex 侧接入按 Open Design 官方 installer 执行：
 
@@ -46,6 +49,7 @@ codex mcp list
 - `修复当前工作流` / `补齐当前工作流`：补齐缺失或损坏的 workflow 文件。
 - `需要测试用例`：对当前需求启用开发前模式，先确认用例、生成自动化测试，再开发和复测。
 - `根据需求生成测试用例并执行测试`：对已开发需求启用开发后模式，按原始需求直接验证现有实现。
+- `适配鸿蒙` / `检查鸿蒙依赖`：已启用 HarmonyOS 支持时，维护依赖台账并按项目配置执行逐库验收。
 
 测试用例驱动验证默认关闭且不主动提醒。详细格式、人工降级和完成门禁见 `docs/test-cases/README.md`。
 

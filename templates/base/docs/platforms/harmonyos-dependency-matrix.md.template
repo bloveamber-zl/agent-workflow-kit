@@ -1,0 +1,24 @@
+# HarmonyOS 依赖兼容台账
+
+## 什么时候读
+
+Flutter-OH 项目新增、升级、替换或适配三方库时读取和更新。只记录直接依赖；传递依赖没有验证前不得标记兼容。
+
+## 判定顺序
+
+1. 纯 Dart 库：检查是否有 `Platform.isOhos` 或平台分支遗漏，再运行相关测试。
+2. Flutter 插件：检查 `pubspec.yaml` 是否声明 `flutter.plugin.platforms.ohos`，并检查是否有 `ohos/` ArkTS/HAR 工程。
+3. 优先查 CPF-Flutter 的适配分支或 Tag，选择与 Flutter-OH 版本匹配的依赖。
+4. 不存在可用实现时，再决定 Fork 适配、业务层替换或延后支持。
+
+## 台账
+
+| 依赖 | 当前版本 | 类型 | `ohos` 声明 | CPF-Flutter 分支/Tag | 策略 | 阻塞 API | 验证 | 真机证据 | 状态 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 待项目填写 | - | 纯 Dart / 插件 | 是 / 否 | - | verify / upgrade_or_switch / fork_and_adapt / replace / defer | - | - | - | 待评估 |
+
+## Fork 与替换规则
+
+- `fork_and_adapt`：在可追溯的源码仓库中补 `ohos` 平台实现、ArkTS/HAR 和测试；不得修改 `pub-cache`。
+- `replace`：在业务边界通过 Adapter/Repository 隔离插件调用，避免页面直接绑定某个插件。
+- 每个 Fork 记录上游地址、基础版本、许可证、维护人、上游同步策略和退出条件。

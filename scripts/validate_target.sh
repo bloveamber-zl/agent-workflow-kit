@@ -69,7 +69,11 @@ for file in \
   "docs/testing/patrol.md" \
   "docs/tools/codegraph.md" \
   "docs/tools/opendesign.md" \
-  "scripts/patrol_acceptance.sh"
+  "scripts/patrol_acceptance.sh" \
+  "docs/platforms/harmonyos.md" \
+  "docs/platforms/harmonyos-dependency-matrix.md" \
+  "docs/testing/harmonyos.md" \
+  "scripts/harmonyos_acceptance.sh"
 do
   if [ -f "$TARGET_ROOT/$file" ]; then
     placeholder_check_files+=("$TARGET_ROOT/$file")
@@ -85,6 +89,9 @@ bash -n "$TARGET_ROOT/init.sh"
 bash -n "$TARGET_ROOT/scripts/acceptance_simulator.sh"
 if [ -f "$TARGET_ROOT/scripts/patrol_acceptance.sh" ]; then
   bash -n "$TARGET_ROOT/scripts/patrol_acceptance.sh"
+fi
+if [ -f "$TARGET_ROOT/scripts/harmonyos_acceptance.sh" ]; then
+  bash -n "$TARGET_ROOT/scripts/harmonyos_acceptance.sh"
 fi
 
 python3 -m json.tool "$TARGET_ROOT/docs/feature_list.json" >/dev/null
@@ -179,7 +186,7 @@ enhancements = data.get("enhancements", {})
 if enhancements and not isinstance(enhancements, dict):
     print("Invalid enhancements: expected object", file=sys.stderr)
     sys.exit(1)
-for key in ("patrol", "codegraph", "opendesign"):
+for key in ("patrol", "harmonyos", "codegraph", "opendesign"):
     if key in enhancements and not isinstance(enhancements[key], bool):
         print(f"Invalid enhancements.{key}: expected boolean", file=sys.stderr)
         sys.exit(1)
@@ -189,6 +196,18 @@ if enhancements.get("patrol"):
     missing = [path for path in required if not (target_root / path).is_file()]
     if missing:
         print("Patrol enhancement enabled but support files are missing: " + ", ".join(missing), file=sys.stderr)
+        sys.exit(1)
+
+if enhancements.get("harmonyos"):
+    required = [
+        "docs/platforms/harmonyos.md",
+        "docs/platforms/harmonyos-dependency-matrix.md",
+        "docs/testing/harmonyos.md",
+        "scripts/harmonyos_acceptance.sh",
+    ]
+    missing = [path for path in required if not (target_root / path).is_file()]
+    if missing:
+        print("HarmonyOS enhancement enabled but support files are missing: " + ", ".join(missing), file=sys.stderr)
         sys.exit(1)
 
 if enhancements.get("codegraph"):

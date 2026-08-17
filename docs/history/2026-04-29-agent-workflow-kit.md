@@ -1,6 +1,6 @@
 # Agent Workflow Kit Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** Follow the project execution plan task-by-task and keep verification evidence.
 
 **Goal:** Build a standalone template and script project that can generate agent workflow files for generic, Flutter, Node, and Python projects.
 

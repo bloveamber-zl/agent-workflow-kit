@@ -22,6 +22,7 @@
 | 涉及架构/API/状态/数据模型 | `docs/project/structure/architecture.md`、相关 design doc |
 | 涉及项目限制、安全、权限或高风险动作 | `docs/project/constraints.md` |
 | 要测试或验收 | `docs/verification.md`、`docs/process/verification.md`、`docs/reports/test-report.md` |
+| Flutter-OH / 鸿蒙插件适配（已启用） | `docs/platforms/harmonyos.md`、`docs/platforms/harmonyos-dependency-matrix.md`、`docs/testing/harmonyos.md` |
 | 用户明确要求测试用例 | `docs/test-cases/README.md`、当前需求级测试用例文档 |
 | 验证失败或任务阻塞 | `docs/process/failure-taxonomy.md`、`docs/reports/test-report.md`、当前 active plan |
 | Agent 链路输出与预期不一致 | `.agent/traces/`、`docs/process/badcase-analysis.md`、`docs/reports/eval-report.md` |

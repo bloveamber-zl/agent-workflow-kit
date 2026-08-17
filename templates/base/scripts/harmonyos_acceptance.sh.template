@@ -1,0 +1,149 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+HARMONYOS_ACTION="${HARMONYOS_ACTION:-run}"
+HARMONYOS_BUILD_MODE="${HARMONYOS_BUILD_MODE:-debug}"
+HARMONYOS_DEVICE="${HARMONYOS_DEVICE:-${FLUTTER_DEVICE:-}}"
+HARMONYOS_HAP_PATH="${HARMONYOS_HAP_PATH:-}"
+HARMONYOS_LOCAL_ENGINE_ARGS="${HARMONYOS_LOCAL_ENGINE_ARGS:-}"
+HARMONYOS_EXTRA_ARGS="${HARMONYOS_EXTRA_ARGS:-}"
+HARMONYOS_DRY_RUN="${HARMONYOS_DRY_RUN:-0}"
+HARMONYOS_SCENARIO="${HARMONYOS_SCENARIO:-unspecified}"
+
+RUN_ID="$(date +%Y%m%d-%H%M%S)-harmonyos-$$"
+RUN_DIR="$PROJECT_ROOT/.dart_tool/acceptance/$RUN_ID"
+LOG_FILE="$RUN_DIR/harmonyos.log"
+SUMMARY_FILE="$RUN_DIR/summary.md"
+EVIDENCE_FILE="$RUN_DIR/evidence.json"
+mkdir -p "$RUN_DIR"
+
+case "$HARMONYOS_BUILD_MODE" in
+  debug|release|profile) ;;
+  *)
+    echo "Invalid HARMONYOS_BUILD_MODE: $HARMONYOS_BUILD_MODE" >&2
+    exit 1
+    ;;
+esac
+
+cmd=()
+case "$HARMONYOS_ACTION" in
+  build)
+    cmd=(flutter build hap --target-platform ohos-arm64 "--$HARMONYOS_BUILD_MODE")
+    ;;
+  run)
+    if [ -z "$HARMONYOS_DEVICE" ]; then
+      echo "HARMONYOS_DEVICE is required for HARMONYOS_ACTION=run" >&2
+      exit 1
+    fi
+    cmd=(flutter run "--$HARMONYOS_BUILD_MODE" -d "$HARMONYOS_DEVICE")
+    ;;
+  install)
+    if [ -z "$HARMONYOS_DEVICE" ] || [ -z "$HARMONYOS_HAP_PATH" ]; then
+      echo "HARMONYOS_DEVICE and HARMONYOS_HAP_PATH are required for HARMONYOS_ACTION=install" >&2
+      exit 1
+    fi
+    cmd=(hdc -t "$HARMONYOS_DEVICE" install "$HARMONYOS_HAP_PATH")
+    ;;
+  *)
+    echo "Invalid HARMONYOS_ACTION: $HARMONYOS_ACTION" >&2
+    echo "Allowed values: build, run, install" >&2
+    exit 1
+    ;;
+esac
+
+if [ -n "$HARMONYOS_LOCAL_ENGINE_ARGS" ] && [ "$HARMONYOS_ACTION" != "install" ]; then
+  local_engine_args=($HARMONYOS_LOCAL_ENGINE_ARGS)
+  cmd+=("${local_engine_args[@]}")
+fi
+if [ -n "$HARMONYOS_EXTRA_ARGS" ] && [ "$HARMONYOS_ACTION" != "install" ]; then
+  extra_args=($HARMONYOS_EXTRA_ARGS)
+  cmd+=("${extra_args[@]}")
+fi
+
+echo "==> HarmonyOS 验收命令"
+printf ' %q' "${cmd[@]}"
+printf '\n'
+echo "==> HarmonyOS 验收产物目录: $RUN_DIR"
+
+status="passed"
+exit_code=0
+if [ "$HARMONYOS_DRY_RUN" = "1" ]; then
+  status="dry-run"
+  {
+    printf 'Dry run: '
+    printf '%q ' "${cmd[@]}"
+    printf '\n'
+  } > "$LOG_FILE"
+else
+  set +e
+  "${cmd[@]}" >"$LOG_FILE" 2>&1
+  exit_code=$?
+  set -e
+  if [ "$exit_code" -ne 0 ]; then
+    status="failed"
+  fi
+fi
+
+cat > "$SUMMARY_FILE" <<EOF
+# HarmonyOS 验收摘要
+
+- 状态：$status
+- 场景：$HARMONYOS_SCENARIO
+- 动作：$HARMONYOS_ACTION
+- 构建模式：$HARMONYOS_BUILD_MODE
+- 设备：${HARMONYOS_DEVICE:-未指定}
+- HAP：${HARMONYOS_HAP_PATH:-未指定}
+- 命令：${cmd[*]}
+- 日志：$LOG_FILE
+EOF
+
+python3 - "$EVIDENCE_FILE" "$status" "$exit_code" "$HARMONYOS_SCENARIO" "$HARMONYOS_ACTION" "$HARMONYOS_BUILD_MODE" "${HARMONYOS_DEVICE:-}" "${HARMONYOS_HAP_PATH:-}" "${cmd[*]}" "$LOG_FILE" "$SUMMARY_FILE" <<'PY'
+import json
+import sys
+
+(
+    path,
+    status,
+    exit_code,
+    scenario,
+    action,
+    build_mode,
+    device,
+    hap_path,
+    command,
+    log_file,
+    summary_file,
+) = sys.argv[1:]
+
+with open(path, "w", encoding="utf-8") as f:
+    json.dump(
+        {
+            "kind": "harmonyos",
+            "status": status,
+            "exit_code": int(exit_code),
+            "scenario": scenario,
+            "action": action,
+            "build_mode": build_mode,
+            "device": device,
+            "hap_path": hap_path,
+            "command": command,
+            "log_file": log_file,
+            "summary_file": summary_file,
+        },
+        f,
+        ensure_ascii=False,
+        indent=2,
+    )
+    f.write("\n")
+PY
+
+echo "==> HarmonyOS 验收摘要: $SUMMARY_FILE"
+echo "==> HarmonyOS 验收证据: $EVIDENCE_FILE"
+
+if [ "$exit_code" -ne 0 ]; then
+  echo "==> HarmonyOS 验收失败，日志尾部:" >&2
+  tail -n 80 "$LOG_FILE" >&2 || true
+  exit "$exit_code"
+fi

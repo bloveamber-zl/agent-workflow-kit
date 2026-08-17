@@ -21,8 +21,9 @@
 | 修复或补齐当前工作流 | enabled | `修复当前工作流` / `补齐当前工作流` | 当前工作目录项目 | 补齐缺失 workflow 文件 |
 | 测试用例驱动验证 | enabled | `需要测试用例` / `根据需求生成测试用例并执行测试` | 当前需求 | `docs/test-cases/<requirement-id>.md`、自动化测试与验收证据 |
 | Patrol 验收 | disabled | `用 Patrol 验证这个需求` | 当前需求 | `docs/testing/patrol.md`、验收证据 |
+| HarmonyOS 依赖适配 | disabled | `适配鸿蒙` / `检查鸿蒙依赖` | 当前需求 | `docs/platforms/harmonyos-dependency-matrix.md`、`docs/testing/harmonyos.md`、验收证据 |
 | CodeGraph 影响分析 | disabled | `用 CodeGraph 做影响分析` | 当前需求 | `docs/tools/codegraph.md` 指引与分析证据 |
-| Open Design 设计链路 | enabled | `用 Open Design 生成设计稿` | 当前需求 | `docs/tools/opendesign.md` 指引与设计证据 |
+| Open Design 设计链路 | disabled | `用 Open Design 生成设计稿` | 当前需求 | `docs/tools/opendesign.md` 指引与设计证据 |
 
 ## 项目深度扫描默认策略
 
@@ -39,15 +40,11 @@
 - 需求依据：测试目标来自原始需求和验收标准，不能根据现有实现反向削弱断言。
 - 人工降级：无法自动化时记录原因、步骤、环境、证据和剩余风险，可人工验收完成。
 - 主要产出：`docs/test-cases/<requirement-id>.md`、自动化测试文件、`docs/reports/test-report.md` 和验收证据。
-- 详细设计：`docs/superpowers/specs/2026-07-10-opt-in-test-case-first-workflow-design.md`。
 
 ## 最近一次项目深度扫描
 
 <!-- BEGIN AUTO-RECON:capabilities -->
-- 最近扫描时间：`2026-07-10 12:02:44`
-- 回填结果：`成功`
-- 影响文件：`docs/project/structure/overview.md`, `docs/project/structure/architecture.md`, `docs/project/features/overview.md`, `docs/project/frontend.md`, `docs/project/constraints.md`
-- 冲突摘要：无。
+- 尚未运行项目深度扫描。
 <!-- END AUTO-RECON:capabilities -->
 
 ## 文档路由

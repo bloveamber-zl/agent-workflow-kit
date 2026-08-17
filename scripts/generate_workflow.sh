@@ -207,9 +207,11 @@ workflow_ignore_paths=(
   "/docs/reports/"
   "/docs/requirements/"
   "/docs/testing/"
+  "/docs/platforms/"
   "/docs/tools/"
   "/scripts/acceptance_simulator.sh"
   "/scripts/patrol_acceptance.sh"
+  "/scripts/harmonyos_acceptance.sh"
 )
 
 write_workflow_gitignore_block() {
@@ -477,11 +479,15 @@ initialize_project_docs() {
 initialize_workflow_capabilities_doc() {
   local capabilities="$TARGET_ROOT/docs/workflow-capabilities.md"
   local patrol_status="disabled"
+  local harmonyos_status="disabled"
   local codegraph_status="disabled"
   local opendesign_status="disabled"
 
   if [ "$PATROL_ENABLED" -eq 1 ]; then
     patrol_status="enabled"
+  fi
+  if [ "$HARMONYOS_ENABLED" -eq 1 ]; then
+    harmonyos_status="enabled"
   fi
   if [ "$CODEGRAPH_ENABLED" -eq 1 ]; then
     codegraph_status="enabled"
@@ -508,6 +514,7 @@ initialize_workflow_capabilities_doc() {
     printf '| 修复或补齐当前工作流 | enabled | `修复当前工作流` / `补齐当前工作流` | 当前工作目录项目 | 补齐缺失 workflow 文件 |\n'
     printf '| 测试用例驱动验证 | enabled | `需要测试用例` / `根据需求生成测试用例并执行测试` | 当前需求 | `docs/test-cases/<requirement-id>.md`、自动化测试与验收证据 |\n'
     printf '| Patrol 验收 | %s | `用 Patrol 验证这个需求` | 当前需求 | `docs/testing/patrol.md`、验收证据 |\n' "$patrol_status"
+    printf '| HarmonyOS 依赖适配 | %s | `适配鸿蒙` / `检查鸿蒙依赖` | 当前需求 | `docs/platforms/harmonyos-dependency-matrix.md`、`docs/testing/harmonyos.md`、验收证据 |\n' "$harmonyos_status"
     printf '| CodeGraph 影响分析 | %s | `用 CodeGraph 做影响分析` | 当前需求 | `docs/tools/codegraph.md` 指引与分析证据 |\n' "$codegraph_status"
     printf '| Open Design 设计链路 | %s | `用 Open Design 生成设计稿` | 当前需求 | `docs/tools/opendesign.md` 指引与设计证据 |\n\n' "$opendesign_status"
     printf '## 项目深度扫描默认策略\n\n'
@@ -565,6 +572,40 @@ resolve_patrol_enabled() {
       ;;
     *)
       echo "Invalid AGENT_WORKFLOW_PATROL value: $mode" >&2
+      echo "Allowed values: ask, yes, no" >&2
+      exit 1
+      ;;
+  esac
+}
+
+resolve_harmonyos_enabled() {
+  if [ "$STACK_NAME" != "flutter" ]; then
+    return 1
+  fi
+
+  local mode="${AGENT_WORKFLOW_HARMONYOS:-ask}"
+  case "$mode" in
+    yes|true|1)
+      return 0
+      ;;
+    no|false|0)
+      return 1
+      ;;
+    ask|"")
+      if [ -t 0 ] && [ -t 1 ]; then
+        printf '%s\n' "检测到 Flutter 工作流。是否生成 HarmonyOS/Flutter-OH 依赖适配支持文件？[y/N]"
+        local answer
+        read -r answer || answer=""
+        case "$answer" in
+          y|Y|yes|YES)
+            return 0
+            ;;
+        esac
+      fi
+      return 1
+      ;;
+    *)
+      echo "Invalid AGENT_WORKFLOW_HARMONYOS value: $mode" >&2
       echo "Allowed values: ask, yes, no" >&2
       exit 1
       ;;
@@ -640,6 +681,17 @@ if resolve_patrol_enabled; then
   )
 fi
 
+HARMONYOS_ENABLED=0
+if resolve_harmonyos_enabled; then
+  HARMONYOS_ENABLED=1
+  outputs+=(
+    "docs/platforms/harmonyos.md"
+    "docs/platforms/harmonyos-dependency-matrix.md"
+    "docs/testing/harmonyos.md"
+    "scripts/harmonyos_acceptance.sh"
+  )
+fi
+
 CODEGRAPH_ENABLED=0
 if resolve_codegraph_enabled; then
   CODEGRAPH_ENABLED=1
@@ -659,6 +711,10 @@ fi
 PATROL_ENABLED_JSON=false
 if [ "$PATROL_ENABLED" -eq 1 ]; then
   PATROL_ENABLED_JSON=true
+fi
+HARMONYOS_ENABLED_JSON=false
+if [ "$HARMONYOS_ENABLED" -eq 1 ]; then
+  HARMONYOS_ENABLED_JSON=true
 fi
 CODEGRAPH_ENABLED_JSON=false
 if [ "$CODEGRAPH_ENABLED" -eq 1 ]; then
@@ -697,6 +753,7 @@ render_template() {
   KIT_VERSION="$KIT_VERSION" \
   TEMPLATE_REVISION="$TEMPLATE_REVISION" \
   PATROL_ENABLED_JSON="$PATROL_ENABLED_JSON" \
+  HARMONYOS_ENABLED_JSON="$HARMONYOS_ENABLED_JSON" \
   CODEGRAPH_ENABLED_JSON="$CODEGRAPH_ENABLED_JSON" \
   OPENDESIGN_ENABLED_JSON="$OPENDESIGN_ENABLED_JSON" \
   PRIMARY_VERIFY_COMMAND="$PRIMARY_VERIFY_COMMAND" \
@@ -723,6 +780,7 @@ render_template() {
     s/\{\{KIT_VERSION\}\}/$ENV{KIT_VERSION}/g;
     s/\{\{TEMPLATE_REVISION\}\}/$ENV{TEMPLATE_REVISION}/g;
     s/\{\{PATROL_ENABLED_JSON\}\}/$ENV{PATROL_ENABLED_JSON}/g;
+    s/\{\{HARMONYOS_ENABLED_JSON\}\}/$ENV{HARMONYOS_ENABLED_JSON}/g;
     s/\{\{CODEGRAPH_ENABLED_JSON\}\}/$ENV{CODEGRAPH_ENABLED_JSON}/g;
     s/\{\{OPENDESIGN_ENABLED_JSON\}\}/$ENV{OPENDESIGN_ENABLED_JSON}/g;
     s/\{\{PRIMARY_VERIFY_COMMAND\}\}/$ENV{PRIMARY_VERIFY_COMMAND}/g;
@@ -787,6 +845,14 @@ if [ "$PATROL_ENABLED" -eq 1 ]; then
   chmod +x "$TARGET_ROOT/scripts/patrol_acceptance.sh"
 fi
 
+if [ "$HARMONYOS_ENABLED" -eq 1 ]; then
+  render_template "$KIT_ROOT/templates/base/docs/platforms/harmonyos.md.template" "$TARGET_ROOT/docs/platforms/harmonyos.md"
+  render_template "$KIT_ROOT/templates/base/docs/platforms/harmonyos-dependency-matrix.md.template" "$TARGET_ROOT/docs/platforms/harmonyos-dependency-matrix.md"
+  render_template "$KIT_ROOT/templates/base/docs/testing/harmonyos.md.template" "$TARGET_ROOT/docs/testing/harmonyos.md"
+  render_template "$KIT_ROOT/templates/base/scripts/harmonyos_acceptance.sh.template" "$TARGET_ROOT/scripts/harmonyos_acceptance.sh"
+  chmod +x "$TARGET_ROOT/scripts/harmonyos_acceptance.sh"
+fi
+
 if [ "$CODEGRAPH_ENABLED" -eq 1 ]; then
   render_template "$KIT_ROOT/templates/base/docs/tools/codegraph.md.template" "$TARGET_ROOT/docs/tools/codegraph.md"
 fi
@@ -806,6 +872,11 @@ if [ "$PATROL_ENABLED" -eq 1 ]; then
   echo "Patrol: workflow support generated"
 else
   echo "Patrol: skipped"
+fi
+if [ "$HARMONYOS_ENABLED" -eq 1 ]; then
+  echo "HarmonyOS: dependency adaptation support generated"
+else
+  echo "HarmonyOS: skipped"
 fi
 if [ "$CODEGRAPH_ENABLED" -eq 1 ]; then
   echo "CodeGraph: optional support generated"

@@ -39,6 +39,7 @@
 - 增强能力按场景触发，不作为每个需求的固定步骤；触发或跳过原因要记录。
 - 如果本轮生成或新增测试用例，先做测试用例自验证，再用测试验证代码。
 - Flutter 项目配置 Patrol 时，开发完成后可由用户选择 Patrol 自动化验收；选择后按 `docs/testing/patrol.md` 生成需求级用例并运行。
+- Flutter 项目如果已启用 HarmonyOS 依赖适配支持，先读取 `docs/platforms/harmonyos.md`、`docs/platforms/harmonyos-dependency-matrix.md` 和 `docs/testing/harmonyos.md`；Patrol 通过不能替代鸿蒙构建和真机证据。
 
 ## E2E / Patrol
 
@@ -75,6 +76,18 @@ ACCEPTANCE_EXTRA_ARGS='--dart-define=KEY=VALUE' scripts/acceptance_simulator.sh
 ```
 
 Patrol 验收脚本支持同类参数，详见 `docs/testing/patrol.md`。
+
+## HarmonyOS / Flutter-OH
+
+启用 HarmonyOS 支持后，先运行 `flutter doctor -v` 与 `flutter devices`。按需求选择：
+
+```bash
+HARMONYOS_ACTION=build HARMONYOS_BUILD_MODE=debug scripts/harmonyos_acceptance.sh
+HARMONYOS_ACTION=run HARMONYOS_DEVICE='<device-id>' scripts/harmonyos_acceptance.sh
+HARMONYOS_ACTION=install HARMONYOS_DEVICE='<device-id>' HARMONYOS_HAP_PATH='<signed.hap>' scripts/harmonyos_acceptance.sh
+```
+
+脚本不会处理签名或猜测 HAP 路径。每个原生插件还必须在依赖台账记录其 `ohos` 实现、版本匹配和真机验证结果。
 
 ## 证据记录位置
 

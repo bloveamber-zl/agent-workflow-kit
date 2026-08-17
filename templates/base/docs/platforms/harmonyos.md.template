@@ -1,0 +1,38 @@
+# HarmonyOS / Flutter-OH 配置
+
+## 什么时候读
+
+当前 Flutter 项目启用了 HarmonyOS 依赖适配支持，准备构建、运行、安装 HAP 或适配原生插件时读取。
+
+## 工具链基线
+
+```bash
+flutter doctor -v
+flutter devices
+```
+
+- `flutter doctor -v` 中 Flutter 与 HarmonyOS toolchain 均应通过。
+- `flutter devices` 应识别 `ohos-arm64` 设备。
+- 新项目使用 `flutter create --platforms ohos <project-name>` 创建；已有项目需由实际工程提供 `ohos/` 目录。
+
+## 构建与运行
+
+```bash
+flutter build hap --target-platform ohos-arm64 --debug
+flutter run --debug -d <device-id>
+hdc -t <device-id> install <signed.hap>
+```
+
+- 签名必须在 DevEco Studio 或项目既有安全流程中完成，不能写入本仓库文档或脚本。
+- HAP 输出路径因项目结构而异，通过 `HARMONYOS_HAP_PATH` 显式传给验收脚本。
+- 仅在项目已有产物目录时设置 `HARMONYOS_LOCAL_ENGINE_ARGS`，用于传递 `--local-engine` 与 `--local-engine-host`。
+
+## 项目配置
+
+| 项目 | 值 | 说明 |
+| --- | --- | --- |
+| Flutter-OH 版本 | 待项目填写 | 与插件 Git Tag/分支匹配 |
+| HarmonyOS SDK / ROM | 待项目填写 | 不记录私有安装路径 |
+| DevEco Studio 版本 | 待项目填写 | 与工程要求匹配 |
+| 设备 ID | 通过环境变量传入 | 不写入长期文档 |
+| 签名方式 | 待项目填写 | 不记录证书、账号或密码 |

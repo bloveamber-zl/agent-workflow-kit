@@ -11,6 +11,7 @@
 | `{{KIT_VERSION}}` | 根目录 `VERSION` | 生成器版本，用于排查脚本来源 |
 | `{{TEMPLATE_REVISION}}` | `templates/VERSION` | 模板修订号，用于判断目标项目是否需要同步 |
 | `{{PATROL_ENABLED_JSON}}` | 生成脚本 | 是否启用 Patrol 可选增强，JSON 布尔值 |
+| `{{HARMONYOS_ENABLED_JSON}}` | 生成脚本 | 是否启用 HarmonyOS 依赖适配增强，JSON 布尔值 |
 | `{{CODEGRAPH_ENABLED_JSON}}` | 生成脚本 | 是否启用 CodeGraph 可选增强，JSON 布尔值 |
 | `{{OPENDESIGN_ENABLED_JSON}}` | 生成脚本 | 是否启用 Open Design 可选增强，JSON 布尔值 |
 | `{{PRIMARY_VERIFY_COMMAND}}` | stack 配置 | 默认轻量验证命令 |

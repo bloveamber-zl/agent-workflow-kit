@@ -26,6 +26,8 @@ docs/reports/eval-report.md -> eval and badcase regression evidence
 docs/process/verification.md -> L0-L4 acceptance routing, test-case self-validation and evidence rules
 docs/test-cases/README.md -> opt-in requirement test-case workflow and completion gates
 scripts/acceptance_simulator.sh -> local/simulator acceptance with evidence.json
+docs/platforms/harmonyos-dependency-matrix.md -> optional Flutter-OH dependency compatibility ledger
+scripts/harmonyos_acceptance.sh -> optional HarmonyOS build/run/install evidence
 ```
 
 `AGENTS.md` is intentionally a slim entry and routing layer. Keep detailed document maps, verification policy, failure taxonomy, badcase workflow, project constraints, execution plans and evidence in `docs/`; do not expand `AGENTS.md` back into a full handbook.
@@ -97,6 +99,16 @@ AGENT_WORKFLOW_PATROL=no "/path/to/agent-workflow-kit/scripts/generate_workflow.
 
 `yes` generates `docs/testing/patrol.md` and `scripts/patrol_acceptance.sh`. It does not silently install dependencies or edit native project settings; the target project must still pass the Patrol setup checks recorded in the generated docs.
 
+For Flutter targets, generation may also ask whether to generate HarmonyOS/Flutter-OH dependency adaptation support. In non-interactive automation, set it explicitly:
+
+```bash
+AGENT_WORKFLOW_HARMONYOS=ask "/path/to/agent-workflow-kit/scripts/generate_workflow.sh" "/path/to/target" --stack flutter
+AGENT_WORKFLOW_HARMONYOS=yes "/path/to/agent-workflow-kit/scripts/generate_workflow.sh" "/path/to/target" --stack flutter
+AGENT_WORKFLOW_HARMONYOS=no "/path/to/agent-workflow-kit/scripts/generate_workflow.sh" "/path/to/target" --stack flutter
+```
+
+`yes` generates the HarmonyOS platform guide, dependency ledger, testing guide and `scripts/harmonyos_acceptance.sh`. It does not install Flutter-OH, sign a HAP, infer private SDK paths, or claim plugin compatibility. For each affected native plugin, the target project must record the compatible branch/tag, `ohos` implementation, build result and real-device critical-path evidence. Maintain a Fork in a traceable repository, never by editing `pub-cache`.
+
 Generation may also ask whether to generate CodeGraph optional support. It only writes `docs/tools/codegraph.md` and records the status in `.agent/config.json`; it does not install CodeGraph or build an index silently. In non-interactive automation, set the environment explicitly:
 
 ```bash
@@ -113,7 +125,7 @@ AGENT_WORKFLOW_OPENDESIGN=yes "/path/to/agent-workflow-kit/scripts/generate_work
 AGENT_WORKFLOW_OPENDESIGN=no "/path/to/agent-workflow-kit/scripts/generate_workflow.sh" "/path/to/target" --stack node
 ```
 
-When using this skill from a chat environment, ask the user about optional Patrol, CodeGraph and Open Design support before invoking generation or upgrade, then pass `AGENT_WORKFLOW_PATROL=yes|no`, `AGENT_WORKFLOW_CODEGRAPH=yes|no` and `AGENT_WORKFLOW_OPENDESIGN=yes|no` so non-TTY script execution does not silently skip the optional prompts.
+When using this skill from a chat environment, ask the user about optional Patrol, HarmonyOS, CodeGraph and Open Design support before invoking generation or upgrade, then pass `AGENT_WORKFLOW_PATROL=yes|no`, `AGENT_WORKFLOW_HARMONYOS=yes|no`, `AGENT_WORKFLOW_CODEGRAPH=yes|no` and `AGENT_WORKFLOW_OPENDESIGN=yes|no` so non-TTY script execution does not silently skip the optional prompts.
 
 Alternative natural-language Runtime initialization:
 
@@ -190,6 +202,7 @@ When enabled, update the current task fields:
 ```
 
    - Flutter upgrades may ask whether to generate or refresh Patrol acceptance support. Use `AGENT_WORKFLOW_PATROL=yes|no` for deterministic automation.
+   - Flutter upgrades may ask whether to generate or refresh HarmonyOS/Flutter-OH dependency adaptation support. Use `AGENT_WORKFLOW_HARMONYOS=yes|no` for deterministic automation.
    - Upgrades may ask whether to generate or refresh CodeGraph optional support. Use `AGENT_WORKFLOW_CODEGRAPH=yes|no` for deterministic automation.
    - Upgrades may ask whether to generate or refresh Open Design optional support. Use `AGENT_WORKFLOW_OPENDESIGN=yes|no` for deterministic automation.
 
@@ -207,11 +220,12 @@ When enabled, update the current task fields:
 
    - The upgrade scripts refresh common workflow entrypoints, validation docs, failure taxonomy docs, and `scripts/acceptance_simulator.sh`, but only add missing state, trace, eval and project-adapted files. They must not overwrite existing `.agent/state/current-task.json`, `.agent/config.json`, `.agent/traces/`, `.agent/evals/`, `docs/coding-progress.md`, `docs/feature_list.json`, `docs/project/`, `docs/requirements/`, `docs/design/`, `docs/exec-plans/`, or `docs/reports/` content.
    - If Patrol support is enabled, `docs/testing/patrol.md` and `scripts/patrol_acceptance.sh` are generated or refreshed as workflow support files.
+   - If HarmonyOS support is enabled, `docs/platforms/harmonyos.md`, `docs/platforms/harmonyos-dependency-matrix.md`, `docs/testing/harmonyos.md` and `scripts/harmonyos_acceptance.sh` are generated or refreshed as workflow support files.
    - If CodeGraph support is enabled, `docs/tools/codegraph.md` is generated or refreshed as a workflow support file.
    - If Open Design support is enabled, `docs/tools/opendesign.md` is generated or refreshed as a workflow support file. The generated workflow must still call Open Design only after the user explicitly asks for it, and Codex-side MCP setup must be verified with `od mcp install codex --print`, `od mcp install codex`, and `codex mcp list`.
 
 7. Optimize existing workflow:
-   - Read current `.agent/state/current-task.json`, `.agent/config.json`, `.agent/traces/README.md`, `.agent/traces/schema.json`, `.agent/evals/README.md`, `AGENTS.md`, `init.sh`, `docs/index.md`, `docs/verification.md`, `docs/process/verification.md`, `docs/process/failure-taxonomy.md`, `docs/process/badcase-analysis.md`, `docs/acceptance_simulator.md`, `docs/testing/patrol.md`, `docs/tools/codegraph.md`, `docs/tools/opendesign.md`, `docs/coding-progress.md`, `docs/feature_list.json`, `docs/session-handoff.md`, `docs/project/*`, `docs/requirements/*`, `docs/design/index.md`, `docs/exec-plans/active/index.md`, `docs/exec-plans/tech-debt-tracker.md`, `docs/reports/eval-report.md`, `docs/reports/test-report.md`, `scripts/acceptance_simulator.sh`, and `scripts/patrol_acceptance.sh` when present.
+   - Read current `.agent/state/current-task.json`, `.agent/config.json`, `.agent/traces/README.md`, `.agent/traces/schema.json`, `.agent/evals/README.md`, `AGENTS.md`, `init.sh`, `docs/index.md`, `docs/verification.md`, `docs/process/verification.md`, `docs/process/failure-taxonomy.md`, `docs/process/badcase-analysis.md`, `docs/acceptance_simulator.md`, `docs/testing/patrol.md`, `docs/platforms/harmonyos.md`, `docs/platforms/harmonyos-dependency-matrix.md`, `docs/testing/harmonyos.md`, `docs/tools/codegraph.md`, `docs/tools/opendesign.md`, `docs/coding-progress.md`, `docs/feature_list.json`, `docs/session-handoff.md`, `docs/project/*`, `docs/requirements/*`, `docs/design/index.md`, `docs/exec-plans/active/index.md`, `docs/exec-plans/tech-debt-tracker.md`, `docs/reports/eval-report.md`, `docs/reports/test-report.md`, `scripts/acceptance_simulator.sh`, `scripts/patrol_acceptance.sh`, and `scripts/harmonyos_acceptance.sh` when present.
    - Preserve project-specific instructions, build notes, private constraints, and verification commands.
    - Keep `AGENTS.md` concise: project context, startup entry, hard rules, workflow summary, verification entry and handoff summary only.
    - Keep common workflow guidance generic; do not hard-code one business project's rules into reusable templates.
@@ -228,6 +242,7 @@ When enabled, update the current task fields:
    - When tests are generated from requirements or uncommitted code, perform test-case self-validation first: the test must run, contain meaningful assertions, map to a requirement or reproduction path, and be reusable as a regression case.
    - When the user chooses Patrol for a Flutter requirement, generate or update a requirement-level `patrol_test/<requirement-id>_test.dart`, add minimal stable widget locators when needed, run `scripts/patrol_acceptance.sh`, and write evidence and uncovered risk to the active plan, `docs/requirements/traceability.md`, and `docs/reports/test-report.md`.
    - For Flutter L3/L4 work, consider Patrol when it is configured. If Patrol is not configured or cannot run, record the fallback acceptance path and uncovered Patrol risk instead of claiming E2E coverage.
+   - For Flutter-OH work with HarmonyOS support configured, read the platform guide, dependency ledger and testing guide before implementation. Keep pure Dart checks separate from native plugin checks; record per-plugin build and real-device evidence. Patrol does not substitute for HarmonyOS coverage.
    - For projects with CodeGraph configured, consider it during project reconnaissance, impact analysis, affected-test selection and complex diagnosis. If CodeGraph is not configured or unavailable, continue with standard repository search and record the skip reason only when the risk requires it.
    - For projects with Open Design configured, use it only when the user explicitly asks for Open Design, design mockups, or code from an Open Design artifact. Before first use after install or upgrade, verify Codex MCP with `od mcp install codex --print`, `od mcp install codex`, and `codex mcp list`; do not hand-write MCP config. For generated design artifacts, include the quality prompt from `docs/tools/opendesign.md`, then score texture/finish, anti-AI feel, industry recognition, information density and implementability; if any core score is below 4/5, revise the brief and iterate instead of treating the design as final. If custom visual assets are needed, use `$openai-image-gateway` only when the user explicitly asks for generated assets or approves generation, and batch multiple assets into one asset board/contact sheet before local cropping to reduce per-image cost. Record the trigger phrase, asset-generation approval and artifact evidence in the active plan.
    - Put project-specific rules and limitations in `docs/project/constraints.md`; only summarize the most critical hard rules in `AGENTS.md`.

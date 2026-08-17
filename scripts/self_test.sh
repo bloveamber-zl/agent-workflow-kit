@@ -45,6 +45,7 @@ grep -Fq 'scripts/recon_project.sh' "$INSTALLED_SKILL"
 grep -Fq 'L0-L4' "$INSTALLED_SKILL"
 grep -Fq 'test-case self-validation' "$INSTALLED_SKILL"
 grep -Fq 'AGENT_WORKFLOW_PATROL' "$INSTALLED_SKILL"
+grep -Fq 'AGENT_WORKFLOW_HARMONYOS' "$INSTALLED_SKILL"
 grep -Fq 'AGENT_WORKFLOW_CODEGRAPH' "$INSTALLED_SKILL"
 grep -Fq 'AGENT_WORKFLOW_OPENDESIGN' "$INSTALLED_SKILL"
 grep -Fq 'test_case_mode' "$INSTALLED_SKILL"
@@ -161,6 +162,9 @@ if data.get("template_revision") != expected_template_revision:
 enhancements = data.get("enhancements", {})
 if enhancements.get("patrol") is not False:
     print("Default generation should leave patrol disabled", file=sys.stderr)
+    sys.exit(1)
+if enhancements.get("harmonyos") is not False:
+    print("Default generation should leave harmonyos disabled", file=sys.stderr)
     sys.exit(1)
 if enhancements.get("codegraph") is not False:
     print("Default generation should leave codegraph disabled", file=sys.stderr)
@@ -304,6 +308,40 @@ test -f "$patrol_evidence_file"
 grep -q '"status": "dry-run"' "$patrol_evidence_file"
 grep -q '"target": "patrol_test/req_example_test.dart"' "$patrol_evidence_file"
 
+echo "==> Verify optional Flutter HarmonyOS workflow prompt path"
+harmonyos_target="$TMP_ROOT/harmonyos-project"
+mkdir -p "$harmonyos_target"
+cat > "$harmonyos_target/pubspec.yaml" <<'YAML'
+name: harmonyos_project
+description: HarmonyOS workflow fixture
+environment:
+  sdk: ^3.8.0
+dependencies:
+  flutter:
+    sdk: flutter
+YAML
+AGENT_WORKFLOW_HARMONYOS=yes "$KIT_ROOT/scripts/generate_workflow.sh" "$harmonyos_target" --stack flutter --project-name harmonyos-project > "$TMP_ROOT/harmonyos-generate.log"
+grep -q 'HarmonyOS' "$TMP_ROOT/harmonyos-generate.log"
+test -f "$harmonyos_target/docs/platforms/harmonyos.md"
+test -f "$harmonyos_target/docs/platforms/harmonyos-dependency-matrix.md"
+test -f "$harmonyos_target/docs/testing/harmonyos.md"
+test -f "$harmonyos_target/scripts/harmonyos_acceptance.sh"
+grep -q 'flutter build hap' "$harmonyos_target/docs/platforms/harmonyos.md"
+grep -q 'fork_and_adapt' "$harmonyos_target/docs/platforms/harmonyos-dependency-matrix.md"
+grep -q 'HARMONYOS_ACTION' "$harmonyos_target/scripts/harmonyos_acceptance.sh"
+grep -q '"harmonyos": true' "$harmonyos_target/.agent/config.json"
+grep -Fxq '/docs/platforms/' "$harmonyos_target/.gitignore"
+grep -Fxq '/scripts/harmonyos_acceptance.sh' "$harmonyos_target/.gitignore"
+"$KIT_ROOT/scripts/validate_target.sh" "$harmonyos_target" >/dev/null
+HARMONYOS_DRY_RUN=1 HARMONYOS_ACTION=build HARMONYOS_SCENARIO="REQ-EXAMPLE" "$harmonyos_target/scripts/harmonyos_acceptance.sh" >/dev/null
+harmonyos_evidence_file="$(find "$harmonyos_target/.dart_tool/acceptance" -name evidence.json | sort | tail -n 1)"
+test -f "$harmonyos_evidence_file"
+grep -q '"kind": "harmonyos"' "$harmonyos_evidence_file"
+grep -q '"action": "build"' "$harmonyos_evidence_file"
+HARMONYOS_DRY_RUN=1 HARMONYOS_ACTION=run HARMONYOS_DEVICE="ohos-test-device" "$harmonyos_target/scripts/harmonyos_acceptance.sh" >/dev/null
+harmonyos_run_evidence_file="$(find "$harmonyos_target/.dart_tool/acceptance" -name evidence.json | sort | tail -n 1)"
+grep -q '"device": "ohos-test-device"' "$harmonyos_run_evidence_file"
+
 echo "==> Verify optional CodeGraph workflow prompt path"
 codegraph_target="$TMP_ROOT/codegraph-project"
 mkdir -p "$codegraph_target"
@@ -372,10 +410,11 @@ grep -q 'update docs/index.md' "$TMP_ROOT/upgrade-dry-run.log"
 grep -q 'update scripts/acceptance_simulator.sh' "$TMP_ROOT/upgrade-dry-run.log"
 grep -q 'old common index' "$upgrade_target/docs/index.md"
 
-AGENT_WORKFLOW_CODEGRAPH=yes AGENT_WORKFLOW_OPENDESIGN=yes "$KIT_ROOT/scripts/upgrade_workflow.sh" "$upgrade_target" --stack flutter --apply > "$TMP_ROOT/upgrade-apply.log"
+AGENT_WORKFLOW_HARMONYOS=yes AGENT_WORKFLOW_CODEGRAPH=yes AGENT_WORKFLOW_OPENDESIGN=yes "$KIT_ROOT/scripts/upgrade_workflow.sh" "$upgrade_target" --stack flutter --apply > "$TMP_ROOT/upgrade-apply.log"
 grep -q 'APPLY' "$TMP_ROOT/upgrade-apply.log"
 grep -q 'gitignore workflow ignore block' "$TMP_ROOT/upgrade-apply.log"
 grep -q 'CodeGraph: yes' "$TMP_ROOT/upgrade-apply.log"
+grep -q 'HarmonyOS: yes' "$TMP_ROOT/upgrade-apply.log"
 grep -q 'Open Design: yes' "$TMP_ROOT/upgrade-apply.log"
 grep -q 'dokichat\|upgrade-project' "$upgrade_target/docs/index.md"
 upgrade_target_root="$(cd "$upgrade_target" && pwd)"
@@ -389,6 +428,10 @@ if grep -q '/docs/design/workflow-bootstrap.md' "$upgrade_target/.gitignore"; th
 fi
 test -f "$upgrade_target/docs/tools/codegraph.md"
 test -f "$upgrade_target/docs/tools/opendesign.md"
+test -f "$upgrade_target/docs/platforms/harmonyos.md"
+test -f "$upgrade_target/docs/platforms/harmonyos-dependency-matrix.md"
+test -f "$upgrade_target/docs/testing/harmonyos.md"
+test -f "$upgrade_target/scripts/harmonyos_acceptance.sh"
 grep -q 'od mcp install codex --print' "$upgrade_target/docs/tools/opendesign.md"
 grep -q '不要 AI demo 感' "$upgrade_target/docs/tools/opendesign.md"
 grep -q '\$openai-image-gateway' "$upgrade_target/docs/tools/opendesign.md"
@@ -410,6 +453,9 @@ if data.get("template_revision") != expected_template_revision:
 if data.get("enhancements", {}).get("codegraph") is not True:
     print("Upgrade did not enable codegraph enhancement", file=sys.stderr)
     sys.exit(1)
+if data.get("enhancements", {}).get("harmonyos") is not True:
+    print("Upgrade did not enable harmonyos enhancement", file=sys.stderr)
+    sys.exit(1)
 if data.get("enhancements", {}).get("opendesign") is not True:
     print("Upgrade did not enable opendesign enhancement", file=sys.stderr)
     sys.exit(1)
@@ -419,11 +465,14 @@ if data.get("local_config_must_stay") != "preserved":
 PY
 grep -q 'custom progress must stay' "$upgrade_target/docs/coding-progress.md"
 "$KIT_ROOT/scripts/validate_target.sh" "$upgrade_target" >/dev/null
-AGENT_WORKFLOW_CODEGRAPH=yes AGENT_WORKFLOW_OPENDESIGN=yes "$KIT_ROOT/scripts/upgrade_workflow.sh" "$upgrade_target" --stack flutter > "$TMP_ROOT/upgrade-after-apply-dry-run.log"
+printf '%s\n' 'local HarmonyOS dependency decisions must stay' > "$upgrade_target/docs/platforms/harmonyos-dependency-matrix.md"
+AGENT_WORKFLOW_HARMONYOS=yes AGENT_WORKFLOW_CODEGRAPH=yes AGENT_WORKFLOW_OPENDESIGN=yes "$KIT_ROOT/scripts/upgrade_workflow.sh" "$upgrade_target" --stack flutter > "$TMP_ROOT/upgrade-after-apply-dry-run.log"
 if grep -q 'refresh .agent/config.json version metadata' "$TMP_ROOT/upgrade-after-apply-dry-run.log"; then
   echo "Upgrade should not refresh config metadata when version and enhancement fields are current." >&2
   exit 1
 fi
+AGENT_WORKFLOW_HARMONYOS=yes "$KIT_ROOT/scripts/upgrade_workflow.sh" "$upgrade_target" --stack flutter --apply >/dev/null
+grep -q 'local HarmonyOS dependency decisions must stay' "$upgrade_target/docs/platforms/harmonyos-dependency-matrix.md"
 
 echo "==> Verify workflow upgrade adds missing generated files"
 mkdir -p "$upgrade_target/docs/test-cases"
