@@ -1,4 +1,5 @@
 stack_name: flutter
+rule_fragments: common/coding,languages/dart,frameworks/flutter
 primary_verify_command: flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings
 strict_verify_command: flutter analyze --no-pub
 test_command: flutter test --no-pub

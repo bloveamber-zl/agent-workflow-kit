@@ -1,0 +1,70 @@
+# Flutter 产品项目风格
+
+## 启用状态
+
+本项目已选择 `flutter_product_style`。Flutter 编码、修复、重构和评审时，先读本文件，再结合现有代码决定最小改动。
+
+## 默认采用
+
+- 按业务域组织 `lib/modules/<domain>/<feature>/`，功能内优先拆分 `logic.dart`、`state.dart`、`view.dart`。
+- 使用 GetX 管理页面逻辑、响应式状态、依赖获取和路由；全局状态只保存跨模块共享数据。
+- 外部能力进入 `repository/`，HTTP 基础和拦截器进入 `http/`，View 不直接承载支付、推送、设备采集或复杂请求编排。
+- API DTO 放入 `models/`，使用 `json_annotation`、`json_serializable`、`fromJson/toJson` 和合理的 `defaultValue`；生成文件不得手改。
+- UI 文案使用生成的本地化 key 与 `.tr`；语言注册集中管理，并为第三方组件按需补 delegate。
+- 颜色集中在 `config/color.dart`，新增颜色优先按用途使用语义名；页面避免散落硬编码色值。
+- 图片、视频、Toast、Sheet、弹窗等通用能力放入 `widgets/` 或 `modules/common/`，资源引用集中在 `config/images.dart`。
+- 使用 `flutter_screenutil` 或项目既有响应式方案，但不得只依赖固定设计稿尺寸；同时验证小屏、平板、键盘和安全区。
+- 遵循项目现有文件名和 API 字段兼容规则；新代码优先使用 Dart 官方 snake_case 文件名和 lowerCamelCase 字段，除非后端直映射或周边代码要求一致。
+
+## 推荐目录
+
+```text
+lib/
+  config/        主题、颜色、图片、环境配置
+  constants/     缓存键和稳定常量
+  enums/         业务枚举
+  generated/     本地化等生成代码
+  http/          Dio 基础、拦截器、响应处理
+  models/        API DTO
+  modules/       按业务域组织页面、Logic、State
+  repository/    API 与平台能力封装
+  routes/        路由定义
+  utils/         无 UI 的通用工具
+  widgets/       跨业务复用组件
+```
+
+目录是指导线，不要求为尚不存在的能力预建空目录，也不得为套模板而搬迁稳定旧代码。
+
+## 明确不默认启用
+
+以下能力只有用户或项目已有需求明确要求时才允许设计和实现，并需记录用途、平台范围、合规边界和验证：
+
+- `enString` 等字符串混淆或协议键运行时解码。
+- 图片 base64/XOR 打包、资源混淆或自定义生成器。
+- 禁止系统截图、后台遮罩或录屏保护。
+- OAID、IDFA、IDFV、IMEI、设备指纹、归因和渠道采集。
+- 请求体加密、自定义签名、私有 Git fork、依赖 override。
+- 审核、渠道或环境差异化行为。
+
+这些机制不能被描述为可靠的安全加密，也不能用于绕过平台政策；涉及个人信息时必须遵循最小采集、用户授权和日志脱敏。
+
+## Model 规则
+
+- 区分 API DTO、页面 State 和跨模块业务状态，不把所有字段堆进全局 `AppState`。
+- 后端 snake_case 字段优先通过 `@JsonKey(name: ...)` 映射；维护旧模型时可保持现状，避免无收益重构。
+- 缺失字段只在业务确有安全默认值时使用 `defaultValue`，不要用空字符串掩盖必填字段错误。
+- UI 临时字段使用 `includeFromJson: false`、`includeToJson: false` 或单独 ViewModel。
+
+## 颜色与多语言规则
+
+- 颜色 token 优先按 `primary`、`background`、`textPrimary`、`divider` 等语义组织，再补业务域 token。
+- 新代码避免 `colorFF123456` 形式；已有值常量可继续复用，渐进治理。
+- 禁止把可见文案直接写在 Widget 中；动态服务端文案除外。
+- 新增语言时同步更新资源文件、生成代码、支持列表、fallback 和第三方组件 delegate，并至少验证一种长文案语言。
+
+## 验证
+
+- 逻辑/Model 改动：运行针对性 Dart/Flutter 测试与 `flutter analyze`。
+- Widget 改动：补或运行 Widget Test，检查 loading、empty、error、success 和 retry。
+- 用户关键路径或平台能力：按风险运行模拟器/真机验收；涉及 Patrol、HarmonyOS 时遵循对应增强文档。
+- 资源或生成代码：运行项目记录的生成命令，确认生成结果可复现且无手改漂移。

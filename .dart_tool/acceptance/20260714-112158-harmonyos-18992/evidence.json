@@ -1,0 +1,13 @@
+{
+  "kind": "harmonyos",
+  "status": "dry-run",
+  "exit_code": 0,
+  "scenario": "unspecified",
+  "action": "build",
+  "build_mode": "debug",
+  "device": "",
+  "hap_path": "",
+  "command": "flutter build hap --target-platform ohos-arm64 --debug",
+  "log_file": ".dart_tool/acceptance/20260714-112158-harmonyos-18992/harmonyos.log",
+  "summary_file": ".dart_tool/acceptance/20260714-112158-harmonyos-18992/summary.md"
+}

@@ -131,6 +131,40 @@ JSON
   grep -q '初始化自动侦察' "$target/docs/project/features/overview.md"
   grep -q '初始化自动侦察' "$target/docs/project/frontend.md"
   grep -q '初始化自动侦察' "$target/docs/project/constraints.md"
+  test ! -e "$target/docs/rules"
+  test "$(grep -c '^## 通用编码规则$' "$target/docs/project/constraints.md")" -eq 1
+  case "$stack" in
+    generic)
+      if grep -Eq '^## (Dart|Flutter|JavaScript|Node|Python) 规则$' "$target/docs/project/constraints.md"; then
+        echo "Generic workflow should only contain common rules." >&2
+        exit 1
+      fi
+      ;;
+    flutter)
+      grep -q '^## Dart 规则$' "$target/docs/project/constraints.md"
+      grep -q '^## Flutter 规则$' "$target/docs/project/constraints.md"
+      grep -q '简单局部结构优先使用返回 `Widget` 的方法' "$target/docs/project/constraints.md"
+      if grep -Eq '^## (JavaScript|Node|Python) 规则$' "$target/docs/project/constraints.md"; then
+        echo "Flutter workflow contains unrelated stack rules." >&2
+        exit 1
+      fi
+      ;;
+    node)
+      grep -q '^## JavaScript 规则$' "$target/docs/project/constraints.md"
+      grep -q '^## Node 规则$' "$target/docs/project/constraints.md"
+      if grep -Eq '^## (Dart|Flutter|Python) 规则$' "$target/docs/project/constraints.md"; then
+        echo "Node workflow contains unrelated stack rules." >&2
+        exit 1
+      fi
+      ;;
+    python)
+      grep -q '^## Python 规则$' "$target/docs/project/constraints.md"
+      if grep -Eq '^## (Dart|Flutter|JavaScript|Node) 规则$' "$target/docs/project/constraints.md"; then
+        echo "Python workflow contains unrelated stack rules." >&2
+        exit 1
+      fi
+      ;;
+  esac
   grep -q 'README.md' "$target/docs/project/structure/overview.md"
   if [ "$stack" = "flutter" ]; then
     grep -q 'Android、iOS' "$target/docs/project/structure/overview.md"
@@ -166,6 +200,9 @@ if enhancements.get("patrol") is not False:
 if enhancements.get("harmonyos") is not False:
     print("Default generation should leave harmonyos disabled", file=sys.stderr)
     sys.exit(1)
+if enhancements.get("flutter_product_style") is not False:
+    print("Default generation should leave flutter_product_style disabled", file=sys.stderr)
+    sys.exit(1)
 if enhancements.get("codegraph") is not False:
     print("Default generation should leave codegraph disabled", file=sys.stderr)
     sys.exit(1)
@@ -185,7 +222,7 @@ PY
   grep -q '验收等级' "$target/docs/requirements/traceability.md"
   grep -q '增强触发' "$target/docs/requirements/traceability.md"
   grep -q 'Patrol 用例' "$target/docs/requirements/traceability.md"
-  grep -q '进行项目深度扫描并回填' "$target/docs/workflow-capabilities.md"
+grep -q '进行项目深度扫描并回填' "$target/docs/workflow-capabilities.md"
   grep -q '测试用例驱动验证 | enabled' "$target/docs/workflow-capabilities.md"
   grep -q '开发前模式' "$target/docs/workflow-capabilities.md"
   grep -q '开发后模式' "$target/docs/workflow-capabilities.md"
@@ -277,6 +314,42 @@ PY
   "$KIT_ROOT/scripts/generate_workflow.sh" "$target" --stack "$stack" --force >/dev/null
   "$KIT_ROOT/scripts/validate_target.sh" "$target" >/dev/null
 done
+
+echo "==> Verify duplicate rule fragments are rejected"
+invalid_kit="$TMP_ROOT/invalid-rule-kit"
+mkdir -p "$invalid_kit/scripts"
+cp "$KIT_ROOT/VERSION" "$invalid_kit/VERSION"
+cp "$KIT_ROOT/scripts/generate_workflow.sh" "$invalid_kit/scripts/generate_workflow.sh"
+cp -R "$KIT_ROOT/templates" "$invalid_kit/templates"
+sed -i.bak 's#rule_fragments: common/coding#rule_fragments: common/coding,common/coding#' "$invalid_kit/templates/stacks/generic.yaml"
+invalid_target="$TMP_ROOT/invalid-rule-target"
+mkdir -p "$invalid_target"
+if "$invalid_kit/scripts/generate_workflow.sh" "$invalid_target" --stack generic >"$TMP_ROOT/invalid-rule.log" 2>&1; then
+  echo "Generator should reject duplicate rule fragments." >&2
+  exit 1
+fi
+grep -q 'Duplicate rule fragment: common/coding' "$TMP_ROOT/invalid-rule.log"
+
+echo "==> Verify optional Flutter product style workflow prompt path"
+style_target="$TMP_ROOT/flutter-style-project"
+mkdir -p "$style_target"
+cat > "$style_target/pubspec.yaml" <<'YAML'
+name: flutter_style_project
+description: Flutter product style workflow fixture
+environment:
+  sdk: ^3.8.0
+dependencies:
+  flutter:
+    sdk: flutter
+YAML
+AGENT_WORKFLOW_FLUTTER_STYLE=yes "$KIT_ROOT/scripts/generate_workflow.sh" "$style_target" --stack flutter --project-name flutter-style-project > "$TMP_ROOT/flutter-style-generate.log"
+grep -q 'Flutter product style: enabled' "$TMP_ROOT/flutter-style-generate.log"
+test -f "$style_target/docs/project/flutter-product-style.md"
+grep -q 'logic.dart.*state.dart.*view.dart' "$style_target/docs/project/flutter-product-style.md"
+grep -q '明确不默认启用' "$style_target/docs/project/flutter-product-style.md"
+grep -q 'Flutter 产品项目风格 | enabled' "$style_target/docs/workflow-capabilities.md"
+grep -q '"flutter_product_style": true' "$style_target/.agent/config.json"
+"$KIT_ROOT/scripts/validate_target.sh" "$style_target" >/dev/null
 
 echo "==> Verify optional Flutter Patrol workflow prompt path"
 patrol_target="$TMP_ROOT/patrol-project"
@@ -416,6 +489,7 @@ grep -q 'gitignore workflow ignore block' "$TMP_ROOT/upgrade-apply.log"
 grep -q 'CodeGraph: yes' "$TMP_ROOT/upgrade-apply.log"
 grep -q 'HarmonyOS: yes' "$TMP_ROOT/upgrade-apply.log"
 grep -q 'Open Design: yes' "$TMP_ROOT/upgrade-apply.log"
+grep -q 'Flutter product style: no' "$TMP_ROOT/upgrade-apply.log"
 grep -q 'dokichat\|upgrade-project' "$upgrade_target/docs/index.md"
 upgrade_target_root="$(cd "$upgrade_target" && pwd)"
 grep -Fq "$upgrade_target_root" "$upgrade_target/AGENTS.md"
@@ -432,6 +506,11 @@ test -f "$upgrade_target/docs/platforms/harmonyos.md"
 test -f "$upgrade_target/docs/platforms/harmonyos-dependency-matrix.md"
 test -f "$upgrade_target/docs/testing/harmonyos.md"
 test -f "$upgrade_target/scripts/harmonyos_acceptance.sh"
+
+AGENT_WORKFLOW_HARMONYOS=yes AGENT_WORKFLOW_FLUTTER_STYLE=yes AGENT_WORKFLOW_CODEGRAPH=yes AGENT_WORKFLOW_OPENDESIGN=yes "$KIT_ROOT/scripts/upgrade_workflow.sh" "$upgrade_target" --stack flutter --apply > "$TMP_ROOT/upgrade-style-apply.log"
+grep -q 'Flutter product style: yes' "$TMP_ROOT/upgrade-style-apply.log"
+test -f "$upgrade_target/docs/project/flutter-product-style.md"
+grep -q '"flutter_product_style": true' "$upgrade_target/.agent/config.json"
 grep -q 'od mcp install codex --print' "$upgrade_target/docs/tools/opendesign.md"
 grep -q '不要 AI demo 感' "$upgrade_target/docs/tools/opendesign.md"
 grep -q '\$openai-image-gateway' "$upgrade_target/docs/tools/opendesign.md"
@@ -459,6 +538,9 @@ if data.get("enhancements", {}).get("harmonyos") is not True:
 if data.get("enhancements", {}).get("opendesign") is not True:
     print("Upgrade did not enable opendesign enhancement", file=sys.stderr)
     sys.exit(1)
+if data.get("enhancements", {}).get("flutter_product_style") is not True:
+    print("Upgrade did not enable flutter product style enhancement", file=sys.stderr)
+    sys.exit(1)
 if data.get("local_config_must_stay") != "preserved":
     print("Upgrade should preserve local config fields", file=sys.stderr)
     sys.exit(1)
@@ -466,7 +548,7 @@ PY
 grep -q 'custom progress must stay' "$upgrade_target/docs/coding-progress.md"
 "$KIT_ROOT/scripts/validate_target.sh" "$upgrade_target" >/dev/null
 printf '%s\n' 'local HarmonyOS dependency decisions must stay' > "$upgrade_target/docs/platforms/harmonyos-dependency-matrix.md"
-AGENT_WORKFLOW_HARMONYOS=yes AGENT_WORKFLOW_CODEGRAPH=yes AGENT_WORKFLOW_OPENDESIGN=yes "$KIT_ROOT/scripts/upgrade_workflow.sh" "$upgrade_target" --stack flutter > "$TMP_ROOT/upgrade-after-apply-dry-run.log"
+AGENT_WORKFLOW_HARMONYOS=yes AGENT_WORKFLOW_FLUTTER_STYLE=yes AGENT_WORKFLOW_CODEGRAPH=yes AGENT_WORKFLOW_OPENDESIGN=yes "$KIT_ROOT/scripts/upgrade_workflow.sh" "$upgrade_target" --stack flutter > "$TMP_ROOT/upgrade-after-apply-dry-run.log"
 if grep -q 'refresh .agent/config.json version metadata' "$TMP_ROOT/upgrade-after-apply-dry-run.log"; then
   echo "Upgrade should not refresh config metadata when version and enhancement fields are current." >&2
   exit 1

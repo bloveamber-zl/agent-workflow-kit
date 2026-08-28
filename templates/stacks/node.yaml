@@ -1,4 +1,5 @@
 stack_name: node
+rule_fragments: common/coding,languages/javascript,frameworks/node
 primary_verify_command: npm run lint --if-present
 strict_verify_command: npm run lint --if-present
 test_command: npm test --if-present

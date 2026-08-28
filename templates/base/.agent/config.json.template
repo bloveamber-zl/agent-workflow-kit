@@ -10,6 +10,7 @@
   "enhancements": {
     "patrol": {{PATROL_ENABLED_JSON}},
     "harmonyos": {{HARMONYOS_ENABLED_JSON}},
+    "flutter_product_style": {{FLUTTER_PRODUCT_STYLE_ENABLED_JSON}},
     "codegraph": {{CODEGRAPH_ENABLED_JSON}},
     "opendesign": {{OPENDESIGN_ENABLED_JSON}}
   },

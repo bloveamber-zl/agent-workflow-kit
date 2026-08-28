@@ -1,4 +1,5 @@
 stack_name: python
+rule_fragments: common/coding,languages/python
 primary_verify_command: python3 -m compileall .
 strict_verify_command: python3 -m compileall .
 test_command: python3 -m pytest

@@ -21,6 +21,9 @@ Flutter 项目可按需生成 Patrol 验收或 HarmonyOS/Flutter-OH 依赖适配
 ```bash
 AGENT_WORKFLOW_PATROL=yes scripts/generate_workflow.sh /path/to/project --stack flutter
 AGENT_WORKFLOW_HARMONYOS=yes scripts/generate_workflow.sh /path/to/project --stack flutter
+AGENT_WORKFLOW_FLUTTER_STYLE=ask scripts/generate_workflow.sh /path/to/project --stack flutter
+AGENT_WORKFLOW_FLUTTER_STYLE=yes scripts/generate_workflow.sh /path/to/project --stack flutter
+AGENT_WORKFLOW_FLUTTER_STYLE=no scripts/generate_workflow.sh /path/to/project --stack flutter
 AGENT_WORKFLOW_CODEGRAPH=yes scripts/generate_workflow.sh /path/to/project --stack node
 AGENT_WORKFLOW_OPENDESIGN=yes scripts/generate_workflow.sh /path/to/project --stack node
 ```
@@ -36,6 +39,8 @@ codex mcp list
 ```
 
 即使启用该文档，agent 也只能在用户明确要求使用 Open Design、生成设计稿/视觉稿或按 Open Design 设计稿生成代码时调用它。
+
+Flutter 产品项目风格增强只在明确选择 `yes` 时启用。启用后生成 `docs/project/flutter-product-style.md`，并在 `.agent/config.json` 写入 `enhancements.flutter_product_style: true`，用于约束目录、GetX Logic/State/View、Repository/HTTP、Model、本地化、颜色和资源组织。`enString`、图片 XOR/base64、禁止截图、设备指纹、请求加密、私有 Fork 等保护机制仍需单独确认，不会因该开关自动启用。
 
 ## 主动功能入口
 
@@ -139,6 +144,8 @@ scripts/install_codex_skill.sh
 - Python：选择 `--stack python`
 - 其他：选择 `--stack generic`，生成后手动改 `init.sh` 中的命令
 
+每个 stack 还会从 `templates/rules/` 选择通用、语言和框架规则，并合并到目标项目现有的 `docs/project/constraints.md`。目标项目不会生成 `docs/rules/`，也不会携带其他 stack 的规则。规则正文只在片段文件中维护，`templates/stacks/*.yaml` 的 `rule_fragments` 仅声明组合顺序。
+
 ## 适配建议
 
 - 先跑轻量验证，再考虑严格分析或完整测试。
@@ -157,7 +164,7 @@ scripts/install_codex_skill.sh
 - `.agent/evals/`：目标项目级评估说明或本地评估输入。
 - `docs/feature_list.json`：项目级需求索引。
 - `docs/coding-progress.md`：会话级进度日志。
-- `docs/project/`：项目理解、特定规则、限制、验证事实和风险。
+- `docs/project/`：项目理解、特定规则、限制、验证事实和风险；技术栈规则已合并到现有 `constraints.md`。
 - `docs/requirements/`：解析后的需求、待确认问题和追踪矩阵。
 - `docs/design/`：结合当前项目后的开发文档。
 - `docs/exec-plans/active/`：用户确认后的执行计划和步骤状态。

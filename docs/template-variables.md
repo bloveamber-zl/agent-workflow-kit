@@ -12,6 +12,7 @@
 | `{{TEMPLATE_REVISION}}` | `templates/VERSION` | 模板修订号，用于判断目标项目是否需要同步 |
 | `{{PATROL_ENABLED_JSON}}` | 生成脚本 | 是否启用 Patrol 可选增强，JSON 布尔值 |
 | `{{HARMONYOS_ENABLED_JSON}}` | 生成脚本 | 是否启用 HarmonyOS 依赖适配增强，JSON 布尔值 |
+| `{{FLUTTER_PRODUCT_STYLE_ENABLED_JSON}}` | 生成脚本 | 是否启用 Flutter 产品项目风格，JSON 布尔值 |
 | `{{CODEGRAPH_ENABLED_JSON}}` | 生成脚本 | 是否启用 CodeGraph 可选增强，JSON 布尔值 |
 | `{{OPENDESIGN_ENABLED_JSON}}` | 生成脚本 | 是否启用 Open Design 可选增强，JSON 布尔值 |
 | `{{PRIMARY_VERIFY_COMMAND}}` | stack 配置 | 默认轻量验证命令 |
@@ -24,6 +25,8 @@
 | `{{E2E_TOOL_NAME}}` | stack 配置 | 推荐 E2E/高风险验收工具名称 |
 | `{{E2E_TEST_COMMAND}}` | stack 配置 | 推荐 E2E/高风险验收命令 |
 | `{{E2E_SETUP_NOTE}}` | stack 配置 | E2E/高风险验收接入说明 |
+
+规则片段不使用模板变量。每个 stack 在 `templates/stacks/*.yaml` 的 `rule_fragments` 中声明 `templates/rules/` 下的唯一组合，生成时合并到目标项目现有的 `docs/project/constraints.md`。
 
 脚本内部还会生成 shell 字面量变量，用于安全写入 `init.sh`：
 

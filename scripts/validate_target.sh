@@ -186,7 +186,7 @@ enhancements = data.get("enhancements", {})
 if enhancements and not isinstance(enhancements, dict):
     print("Invalid enhancements: expected object", file=sys.stderr)
     sys.exit(1)
-for key in ("patrol", "harmonyos", "codegraph", "opendesign"):
+for key in ("patrol", "harmonyos", "flutter_product_style", "codegraph", "opendesign"):
     if key in enhancements and not isinstance(enhancements[key], bool):
         print(f"Invalid enhancements.{key}: expected boolean", file=sys.stderr)
         sys.exit(1)
@@ -208,6 +208,13 @@ if enhancements.get("harmonyos"):
     missing = [path for path in required if not (target_root / path).is_file()]
     if missing:
         print("HarmonyOS enhancement enabled but support files are missing: " + ", ".join(missing), file=sys.stderr)
+        sys.exit(1)
+
+if enhancements.get("flutter_product_style"):
+    required = ["docs/project/flutter-product-style.md"]
+    missing = [path for path in required if not (target_root / path).is_file()]
+    if missing:
+        print("Flutter product style enabled but support files are missing: " + ", ".join(missing), file=sys.stderr)
         sys.exit(1)
 
 if enhancements.get("codegraph"):

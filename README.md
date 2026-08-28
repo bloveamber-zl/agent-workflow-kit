@@ -23,6 +23,7 @@
 - `docs/feature_list.json`
 - `docs/session-handoff.md`
 - `docs/project/`：项目理解、规则、限制、验证事实和前端约束
+- `docs/project/flutter-product-style.md`：Flutter 项目可选的产品代码风格约束（显式启用时生成）
 - `docs/requirements/`：解析后的需求、待确认问题和需求追踪矩阵
 - `docs/design/`：结合项目现状后的开发文档
 - `docs/exec-plans/`：active/completed 执行计划和技术债
@@ -34,7 +35,7 @@
 
 生成或升级工作流时，脚本会在目标项目 `.gitignore` 中写入 `agent-workflow-kit` 忽略块，默认不把这些工作流文件纳入版本管理。`docs/requirements/`、`docs/design/`、`docs/exec-plans/`、`docs/reports/` 等动态文档目录使用目录级忽略，后续新增文档也会自动忽略。
 
-初始化时会根据目标项目的常见目录和配置文件，自动填充 `docs/project/structure/overview.md`、`docs/project/structure/architecture.md`、`docs/project/features/overview.md`、`docs/project/frontend.md` 和 `docs/project/constraints.md` 的基础项目地图；业务定位和领域细节仍需在后续任务中补充。
+初始化时会根据目标项目的常见目录和配置文件，自动填充 `docs/project/structure/overview.md`、`docs/project/structure/architecture.md`、`docs/project/features/overview.md`、`docs/project/frontend.md` 和 `docs/project/constraints.md` 的基础项目地图；业务定位和领域细节仍需在后续任务中补充。通用、语言和框架规则只在 kit 的 `templates/rules/` 中分层维护，由 stack 配置组合进现有 `docs/project/constraints.md`，不会在目标项目增加规则目录或复制无关技术栈规则。
 
 安装后的项目还会生成 `docs/workflow-capabilities.md`，集中说明当前工作流已启用的主动功能、对话触发方式、默认目标与回填策略。当前主动能力包括“`进行项目深度扫描并回填`”和显式触发的测试用例驱动验证。
 
@@ -81,6 +82,16 @@ AGENT_WORKFLOW_HARMONYOS=ask scripts/generate_workflow.sh /path/to/project --sta
 AGENT_WORKFLOW_HARMONYOS=yes scripts/generate_workflow.sh /path/to/project --stack flutter
 AGENT_WORKFLOW_HARMONYOS=no scripts/generate_workflow.sh /path/to/project --stack flutter
 ```
+
+如果希望复用 dokichat/xinghui 的 Flutter 产品项目风格，可显式选择：
+
+```bash
+AGENT_WORKFLOW_FLUTTER_STYLE=ask scripts/generate_workflow.sh /path/to/project --stack flutter
+AGENT_WORKFLOW_FLUTTER_STYLE=yes scripts/generate_workflow.sh /path/to/project --stack flutter
+AGENT_WORKFLOW_FLUTTER_STYLE=no scripts/generate_workflow.sh /path/to/project --stack flutter
+```
+
+启用后会生成 `docs/project/flutter-product-style.md`。其中的字符串/资源保护、截图限制、设备标识和请求加密均是单独授权项，不会默认带入。
 
 初始化或升级时也可以生成 CodeGraph 可选增强说明。该流程只生成 `docs/tools/codegraph.md` 和配置记录，不会静默安装 CodeGraph：
 
@@ -133,6 +144,7 @@ scripts/upgrade_all_workflows.sh --apply
 半自动升级会刷新通用入口文件，例如 `AGENTS.md`、`init.sh`、`docs/index.md`、验证说明、失败归因说明和 `scripts/acceptance_simulator.sh`。项目状态、trace、eval 和项目适配文件只补缺失，不覆盖已有内容，例如 `.agent/state/current-task.json`、`.agent/config.json`、`.agent/traces/`、`.agent/evals/`、`docs/coding-progress.md`、`docs/feature_list.json`、`docs/requirements/`、`docs/design/`、`docs/exec-plans/`、`docs/reports/` 和 `docs/project/`。
 
 如果 Flutter 项目选择 Patrol 支持，升级脚本会额外生成或刷新 `docs/testing/patrol.md` 和 `scripts/patrol_acceptance.sh`。如果选择 HarmonyOS 支持，会生成或刷新 `docs/platforms/harmonyos.md`、`docs/platforms/harmonyos-dependency-matrix.md`、`docs/testing/harmonyos.md` 和 `scripts/harmonyos_acceptance.sh`。如果选择 CodeGraph 支持，会生成或刷新 `docs/tools/codegraph.md`。如果选择 Open Design 支持，会生成或刷新 `docs/tools/opendesign.md`。
+如果选择 Flutter 产品项目风格，升级脚本会补齐 `docs/project/flutter-product-style.md`，并保留已有自定义内容。
 
 升级脚本应用变更时也会补齐或刷新 `.gitignore` 的 workflow 忽略块；已存在旧的文件级规则时会替换为当前目录级规则。
 
@@ -218,6 +230,8 @@ scripts/install_codex_skill.sh
 - `docs/exec-plans/active/*.md`：开发步骤、当前状态、验证和证据。
 - `docs/project/constraints.md`：项目特定规则、编码约定、安全限制和风险。
 
+规则正文在 kit 内保持单一来源：`templates/stacks/*.yaml` 只声明组合关系，初始化按 `common -> language -> framework` 顺序写入现有 `constraints.md`；升级仍保护目标项目已维护的该文件。
+
 验收阶段按 L0-L4 自动判定验证强度。需求澄清、PRD、拆任务、TDD、诊断、架构巡检、E2E/Patrol 和交接作为按场景触发的增强能力，不进入每个需求的固定步骤；触发或跳过原因写入 active plan、追踪矩阵或测试报告。新增或生成测试用例时，先做测试用例自验证，再用测试验证代码。
 
 测试用例驱动模式是另一个显式增强：默认不启用、不提醒。开发前模式先确认需求级用例、生成失败测试再实现；开发后模式根据原始需求生成用例并直接验证现有实现，不伪造历史红灯。无法自动化时必须记录原因和人工验收证据。
@@ -240,6 +254,7 @@ Flutter 启动和验收会优先检查 `.vscode/launch.json` 与 `define_config/
 ```text
 templates/base/       通用模板
 templates/stacks/     技术栈变量
+templates/rules/      通用、语言和框架规则片段
 skills/               Codex skill 源码
 runtime/              轻量 workflow 编排 Runtime
 prompts/              Prompt Registry 初版

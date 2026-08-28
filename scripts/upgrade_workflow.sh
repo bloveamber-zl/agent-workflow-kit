@@ -161,6 +161,32 @@ resolve_harmonyos_enabled() {
   esac
 }
 
+resolve_flutter_product_style_enabled() {
+  if [ "$STACK" != "flutter" ]; then
+    return 1
+  fi
+
+  local mode="${AGENT_WORKFLOW_FLUTTER_STYLE:-ask}"
+  case "$mode" in
+    yes|true|1) return 0 ;;
+    no|false|0) return 1 ;;
+    ask|"")
+      if [ -t 0 ] && [ -t 1 ]; then
+        printf '%s\n' "检测到 Flutter 工作流。是否生成或保留 Flutter 产品项目风格？[y/N]"
+        local answer
+        read -r answer || answer=""
+        case "$answer" in y|Y|yes|YES) return 0 ;; esac
+      fi
+      return 1
+      ;;
+    *)
+      echo "Invalid AGENT_WORKFLOW_FLUTTER_STYLE value: $mode" >&2
+      echo "Allowed values: ask, yes, no" >&2
+      exit 1
+      ;;
+  esac
+}
+
 resolve_codegraph_enabled() {
   local mode="${AGENT_WORKFLOW_CODEGRAPH:-ask}"
   case "$mode" in
@@ -231,6 +257,11 @@ if resolve_harmonyos_enabled; then
   HARMONYOS_ENV=yes
 fi
 
+FLUTTER_PRODUCT_STYLE_ENV=no
+if resolve_flutter_product_style_enabled; then
+  FLUTTER_PRODUCT_STYLE_ENV=yes
+fi
+
 CODEGRAPH_ENV=no
 if resolve_codegraph_enabled; then
   CODEGRAPH_ENV=yes
@@ -249,7 +280,7 @@ trap cleanup EXIT
 
 generated="$TMP_ROOT/generated"
 mkdir -p "$generated"
-AGENT_WORKFLOW_PATROL="$PATROL_ENV" AGENT_WORKFLOW_HARMONYOS="$HARMONYOS_ENV" AGENT_WORKFLOW_CODEGRAPH="$CODEGRAPH_ENV" AGENT_WORKFLOW_OPENDESIGN="$OPENDESIGN_ENV" "$KIT_ROOT/scripts/generate_workflow.sh" "$generated" --stack "$STACK" --project-name "$PROJECT_NAME" --project-root "$TARGET_ROOT" >/dev/null
+AGENT_WORKFLOW_PATROL="$PATROL_ENV" AGENT_WORKFLOW_HARMONYOS="$HARMONYOS_ENV" AGENT_WORKFLOW_FLUTTER_STYLE="$FLUTTER_PRODUCT_STYLE_ENV" AGENT_WORKFLOW_CODEGRAPH="$CODEGRAPH_ENV" AGENT_WORKFLOW_OPENDESIGN="$OPENDESIGN_ENV" "$KIT_ROOT/scripts/generate_workflow.sh" "$generated" --stack "$STACK" --project-name "$PROJECT_NAME" --project-root "$TARGET_ROOT" >/dev/null
 
 # Files in this list are common workflow entrypoints. In semi-automatic mode
 # they can be refreshed from templates because they should not carry project
@@ -322,6 +353,12 @@ add_only_files=(
   "docs/reports/test-report.md"
   "docs/test-cases/README.md"
 )
+
+if [ "$FLUTTER_PRODUCT_STYLE_ENV" = "yes" ]; then
+  add_only_files+=(
+    "docs/project/flutter-product-style.md"
+  )
+fi
 
 if [ "$HARMONYOS_ENV" = "yes" ]; then
   add_only_files+=(
@@ -497,6 +534,7 @@ echo "Target: $TARGET_ROOT"
 echo "Stack: $STACK"
 echo "Patrol: $PATROL_ENV"
 echo "HarmonyOS: $HARMONYOS_ENV"
+echo "Flutter product style: $FLUTTER_PRODUCT_STYLE_ENV"
 echo "CodeGraph: $CODEGRAPH_ENV"
 echo "Open Design: $OPENDESIGN_ENV"
 

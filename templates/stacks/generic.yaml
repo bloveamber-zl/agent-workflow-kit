@@ -1,4 +1,5 @@
 stack_name: generic
+rule_fragments: common/coding
 primary_verify_command: printf '%s\n' 'TODO: configure PRIMARY_VERIFY_COMMAND in init.sh'
 strict_verify_command: printf '%s\n' 'TODO: configure STRICT_VERIFY_COMMAND in init.sh'
 test_command: printf '%s\n' 'TODO: configure TEST_COMMAND in init.sh'

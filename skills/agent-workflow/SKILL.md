@@ -80,6 +80,7 @@ If that path is unavailable, check `AGENT_WORKFLOW_KIT_ROOT`, then ask the user 
    - `package.json` -> `node`
    - `pyproject.toml`, `requirements.txt`, or `setup.py` -> `python`
    - Otherwise -> `generic`
+   - Each stack selects common, language and framework rule fragments from `templates/rules/` and merges them into the existing target `docs/project/constraints.md`. Do not create a separate target rules directory or copy unrelated stack rules.
 
 5. Generate when safe:
 
@@ -108,6 +109,16 @@ AGENT_WORKFLOW_HARMONYOS=no "/path/to/agent-workflow-kit/scripts/generate_workfl
 ```
 
 `yes` generates the HarmonyOS platform guide, dependency ledger, testing guide and `scripts/harmonyos_acceptance.sh`. It does not install Flutter-OH, sign a HAP, infer private SDK paths, or claim plugin compatibility. For each affected native plugin, the target project must record the compatible branch/tag, `ohos` implementation, build result and real-device critical-path evidence. Maintain a Fork in a traceable repository, never by editing `pub-cache`.
+
+For Flutter targets, generation may also ask whether to enable the optional Flutter product-project style analyzed from the team's existing apps. In non-interactive automation, set it explicitly:
+
+```bash
+AGENT_WORKFLOW_FLUTTER_STYLE=ask "/path/to/agent-workflow-kit/scripts/generate_workflow.sh" "/path/to/target" --stack flutter
+AGENT_WORKFLOW_FLUTTER_STYLE=yes "/path/to/agent-workflow-kit/scripts/generate_workflow.sh" "/path/to/target" --stack flutter
+AGENT_WORKFLOW_FLUTTER_STYLE=no "/path/to/agent-workflow-kit/scripts/generate_workflow.sh" "/path/to/target" --stack flutter
+```
+
+`yes` generates `docs/project/flutter-product-style.md` and records `enhancements.flutter_product_style: true`. When enabled, read that document before Flutter coding, refactoring or review. It standardizes the optional directory, GetX Logic/State/View, repository/http, model, localization, color and asset conventions. String obfuscation, XOR/base64 resources, screenshot blocking, device identifiers, request encryption, private forks and review/channel behavior remain separately authorized mechanisms and must not be inferred from this style switch.
 
 Generation may also ask whether to generate CodeGraph optional support. It only writes `docs/tools/codegraph.md` and records the status in `.agent/config.json`; it does not install CodeGraph or build an index silently. In non-interactive automation, set the environment explicitly:
 

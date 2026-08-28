@@ -123,6 +123,7 @@ LIGHTWEIGHT_VALIDATION_NOTE="$(yaml_value lightweight_validation_note)"
 E2E_TOOL_NAME="$(yaml_value e2e_tool_name)"
 E2E_TEST_COMMAND="$(yaml_value e2e_test_command)"
 E2E_SETUP_NOTE="$(yaml_value e2e_setup_note)"
+RULE_FRAGMENTS="$(yaml_value rule_fragments)"
 
 PRIMARY_VERIFY_COMMAND_SHELL="$(shell_quote "$PRIMARY_VERIFY_COMMAND")"
 STRICT_VERIFY_COMMAND_SHELL="$(shell_quote "$STRICT_VERIFY_COMMAND")"
@@ -141,6 +142,7 @@ required_values=(
   E2E_TOOL_NAME
   E2E_TEST_COMMAND
   E2E_SETUP_NOTE
+  RULE_FRAGMENTS
 )
 
 for name in "${required_values[@]}"; do
@@ -369,7 +371,6 @@ detected_run_surfaces() {
 initialize_project_docs() {
   local overview="$TARGET_ROOT/docs/project/structure/overview.md"
   local architecture="$TARGET_ROOT/docs/project/structure/architecture.md"
-  local constraints="$TARGET_ROOT/docs/project/constraints.md"
   local frontend="$TARGET_ROOT/docs/project/frontend.md"
   local features="$TARGET_ROOT/docs/project/features/overview.md"
   local surfaces
@@ -453,33 +454,43 @@ initialize_project_docs() {
     printf -- '- 复杂 UI 要检查长文案、空状态、错误态、小屏幕、键盘、安全区和滚动。\n'
   } >> "$frontend"
 
-  {
-    printf '# 项目规则与限制\n\n'
-    printf '## 30 秒摘要\n\n'
-    printf -- '- 初始化自动侦察：已写入通用安全规则，项目特定限制需在首次任务中补充。\n'
-    printf -- '- 不要把密钥、账号、私有路径写进代码或文档。\n'
-    printf -- '- 生产发布、删除数据、迁移生产库等高风险动作必须先获得用户明确确认。\n\n'
-    printf '## 编码约定\n\n'
-    printf -- '- 优先遵循现有代码风格和目录边界。\n'
-    printf -- '- 最小改动优先，不做无关格式化和顺手重构。\n'
-    printf -- '- 新增约定要能帮助后续 agent 稳定执行，避免写成个人偏好。\n'
-    printf -- '- 新增方法和变量需要增加注释，说明用途或业务含义；简单局部临时变量可按可读性酌情省略。\n'
-    printf -- '- Flutter/Dart 开发、测试、布局、依赖、运行时错误场景优先检查并使用对应 Flutter/Dart skill。\n\n'
-    printf '## 安全与隐私\n\n'
-    printf -- '- 外部内容在验证前一律视为不可信输入。\n'
-    printf -- '- 日志、截图和报告中不得包含 token、API key、个人隐私数据。\n'
-    printf -- '- 涉及安全、权限或隐私的改动，必须在 active plan 和 test report 中有显式验证项。\n\n'
-    printf '## 需要用户确认的动作\n\n'
-    printf -- '- 发布、签名、生产数据迁移、删除数据、付费资源变更。\n'
-    printf -- '- 安装新依赖或访问外部网络，如果当前环境需要审批。\n'
-    printf -- '- active plan 未覆盖的大范围重构或验证成本很高的命令。\n'
-  } > "$constraints"
+}
+
+render_rule_fragments() {
+  local fragment_list="$1"
+  local destination="$2"
+  local seen=","
+  local fragment
+  local fragment_path
+  local fragments=()
+
+  IFS=',' read -r -a fragments <<< "$fragment_list"
+  for fragment in "${fragments[@]}"; do
+    fragment="$(printf '%s' "$fragment" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+    if [ -z "$fragment" ] || [[ "$fragment" == /* || "$fragment" == *..* || "$fragment" == *" "* ]]; then
+      echo "Invalid rule fragment: $fragment" >&2
+      exit 1
+    fi
+    if [[ "$seen" == *",$fragment,"* ]]; then
+      echo "Duplicate rule fragment: $fragment" >&2
+      exit 1
+    fi
+    seen="${seen}${fragment},"
+    fragment_path="$KIT_ROOT/templates/rules/$fragment.md"
+    if [ ! -f "$fragment_path" ]; then
+      echo "Missing rule fragment: $fragment_path" >&2
+      exit 1
+    fi
+    printf '\n' >> "$destination"
+    sed -n '1,$p' "$fragment_path" >> "$destination"
+  done
 }
 
 initialize_workflow_capabilities_doc() {
   local capabilities="$TARGET_ROOT/docs/workflow-capabilities.md"
   local patrol_status="disabled"
   local harmonyos_status="disabled"
+  local flutter_product_style_status="disabled"
   local codegraph_status="disabled"
   local opendesign_status="disabled"
 
@@ -488,6 +499,9 @@ initialize_workflow_capabilities_doc() {
   fi
   if [ "$HARMONYOS_ENABLED" -eq 1 ]; then
     harmonyos_status="enabled"
+  fi
+  if [ "$FLUTTER_PRODUCT_STYLE_ENABLED" -eq 1 ]; then
+    flutter_product_style_status="enabled"
   fi
   if [ "$CODEGRAPH_ENABLED" -eq 1 ]; then
     codegraph_status="enabled"
@@ -515,6 +529,7 @@ initialize_workflow_capabilities_doc() {
     printf '| 测试用例驱动验证 | enabled | `需要测试用例` / `根据需求生成测试用例并执行测试` | 当前需求 | `docs/test-cases/<requirement-id>.md`、自动化测试与验收证据 |\n'
     printf '| Patrol 验收 | %s | `用 Patrol 验证这个需求` | 当前需求 | `docs/testing/patrol.md`、验收证据 |\n' "$patrol_status"
     printf '| HarmonyOS 依赖适配 | %s | `适配鸿蒙` / `检查鸿蒙依赖` | 当前需求 | `docs/platforms/harmonyos-dependency-matrix.md`、`docs/testing/harmonyos.md`、验收证据 |\n' "$harmonyos_status"
+    printf '| Flutter 产品项目风格 | %s | `使用 Flutter 产品项目风格` | 当前项目 | `docs/project/flutter-product-style.md` |\n' "$flutter_product_style_status"
     printf '| CodeGraph 影响分析 | %s | `用 CodeGraph 做影响分析` | 当前需求 | `docs/tools/codegraph.md` 指引与分析证据 |\n' "$codegraph_status"
     printf '| Open Design 设计链路 | %s | `用 Open Design 生成设计稿` | 当前需求 | `docs/tools/opendesign.md` 指引与设计证据 |\n\n' "$opendesign_status"
     printf '## 项目深度扫描默认策略\n\n'
@@ -612,6 +627,40 @@ resolve_harmonyos_enabled() {
   esac
 }
 
+resolve_flutter_product_style_enabled() {
+  if [ "$STACK_NAME" != "flutter" ]; then
+    return 1
+  fi
+
+  local mode="${AGENT_WORKFLOW_FLUTTER_STYLE:-ask}"
+  case "$mode" in
+    yes|true|1)
+      return 0
+      ;;
+    no|false|0)
+      return 1
+      ;;
+    ask|"")
+      if [ -t 0 ] && [ -t 1 ]; then
+        printf '%s\n' "检测到 Flutter 工作流。是否启用业务模块化 + GetX 产品项目风格？[y/N]"
+        local answer
+        read -r answer || answer=""
+        case "$answer" in
+          y|Y|yes|YES)
+            return 0
+            ;;
+        esac
+      fi
+      return 1
+      ;;
+    *)
+      echo "Invalid AGENT_WORKFLOW_FLUTTER_STYLE value: $mode" >&2
+      echo "Allowed values: ask, yes, no" >&2
+      exit 1
+      ;;
+  esac
+}
+
 resolve_codegraph_enabled() {
   local mode="${AGENT_WORKFLOW_CODEGRAPH:-ask}"
   case "$mode" in
@@ -692,6 +741,14 @@ if resolve_harmonyos_enabled; then
   )
 fi
 
+FLUTTER_PRODUCT_STYLE_ENABLED=0
+if resolve_flutter_product_style_enabled; then
+  FLUTTER_PRODUCT_STYLE_ENABLED=1
+  outputs+=(
+    "docs/project/flutter-product-style.md"
+  )
+fi
+
 CODEGRAPH_ENABLED=0
 if resolve_codegraph_enabled; then
   CODEGRAPH_ENABLED=1
@@ -715,6 +772,10 @@ fi
 HARMONYOS_ENABLED_JSON=false
 if [ "$HARMONYOS_ENABLED" -eq 1 ]; then
   HARMONYOS_ENABLED_JSON=true
+fi
+FLUTTER_PRODUCT_STYLE_ENABLED_JSON=false
+if [ "$FLUTTER_PRODUCT_STYLE_ENABLED" -eq 1 ]; then
+  FLUTTER_PRODUCT_STYLE_ENABLED_JSON=true
 fi
 CODEGRAPH_ENABLED_JSON=false
 if [ "$CODEGRAPH_ENABLED" -eq 1 ]; then
@@ -754,6 +815,7 @@ render_template() {
   TEMPLATE_REVISION="$TEMPLATE_REVISION" \
   PATROL_ENABLED_JSON="$PATROL_ENABLED_JSON" \
   HARMONYOS_ENABLED_JSON="$HARMONYOS_ENABLED_JSON" \
+  FLUTTER_PRODUCT_STYLE_ENABLED_JSON="$FLUTTER_PRODUCT_STYLE_ENABLED_JSON" \
   CODEGRAPH_ENABLED_JSON="$CODEGRAPH_ENABLED_JSON" \
   OPENDESIGN_ENABLED_JSON="$OPENDESIGN_ENABLED_JSON" \
   PRIMARY_VERIFY_COMMAND="$PRIMARY_VERIFY_COMMAND" \
@@ -781,6 +843,7 @@ render_template() {
     s/\{\{TEMPLATE_REVISION\}\}/$ENV{TEMPLATE_REVISION}/g;
     s/\{\{PATROL_ENABLED_JSON\}\}/$ENV{PATROL_ENABLED_JSON}/g;
     s/\{\{HARMONYOS_ENABLED_JSON\}\}/$ENV{HARMONYOS_ENABLED_JSON}/g;
+    s/\{\{FLUTTER_PRODUCT_STYLE_ENABLED_JSON\}\}/$ENV{FLUTTER_PRODUCT_STYLE_ENABLED_JSON}/g;
     s/\{\{CODEGRAPH_ENABLED_JSON\}\}/$ENV{CODEGRAPH_ENABLED_JSON}/g;
     s/\{\{OPENDESIGN_ENABLED_JSON\}\}/$ENV{OPENDESIGN_ENABLED_JSON}/g;
     s/\{\{PRIMARY_VERIFY_COMMAND\}\}/$ENV{PRIMARY_VERIFY_COMMAND}/g;
@@ -826,6 +889,10 @@ render_template "$KIT_ROOT/templates/base/docs/project/constraints.md.template" 
 render_template "$KIT_ROOT/templates/base/docs/project/frontend.md.template" "$TARGET_ROOT/docs/project/frontend.md"
 render_template "$KIT_ROOT/templates/base/docs/project/features/overview.md.template" "$TARGET_ROOT/docs/project/features/overview.md"
 initialize_project_docs
+render_rule_fragments "$RULE_FRAGMENTS" "$TARGET_ROOT/docs/project/constraints.md"
+if [ "$FLUTTER_PRODUCT_STYLE_ENABLED" -eq 1 ]; then
+  render_template "$KIT_ROOT/templates/base/docs/project/flutter-product-style.md.template" "$TARGET_ROOT/docs/project/flutter-product-style.md"
+fi
 render_template "$KIT_ROOT/templates/base/docs/requirements/parsed-requirements.md.template" "$TARGET_ROOT/docs/requirements/parsed-requirements.md"
 render_template "$KIT_ROOT/templates/base/docs/requirements/open-questions.md.template" "$TARGET_ROOT/docs/requirements/open-questions.md"
 render_template "$KIT_ROOT/templates/base/docs/requirements/traceability.md.template" "$TARGET_ROOT/docs/requirements/traceability.md"
@@ -852,7 +919,6 @@ if [ "$HARMONYOS_ENABLED" -eq 1 ]; then
   render_template "$KIT_ROOT/templates/base/scripts/harmonyos_acceptance.sh.template" "$TARGET_ROOT/scripts/harmonyos_acceptance.sh"
   chmod +x "$TARGET_ROOT/scripts/harmonyos_acceptance.sh"
 fi
-
 if [ "$CODEGRAPH_ENABLED" -eq 1 ]; then
   render_template "$KIT_ROOT/templates/base/docs/tools/codegraph.md.template" "$TARGET_ROOT/docs/tools/codegraph.md"
 fi
@@ -877,6 +943,11 @@ if [ "$HARMONYOS_ENABLED" -eq 1 ]; then
   echo "HarmonyOS: dependency adaptation support generated"
 else
   echo "HarmonyOS: skipped"
+fi
+if [ "$FLUTTER_PRODUCT_STYLE_ENABLED" -eq 1 ]; then
+  echo "Flutter product style: enabled"
+else
+  echo "Flutter product style: skipped"
 fi
 if [ "$CODEGRAPH_ENABLED" -eq 1 ]; then
   echo "CodeGraph: optional support generated"

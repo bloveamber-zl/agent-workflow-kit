@@ -16,6 +16,7 @@
 - 按需使用 Plan Mode 或 Subagent；只有任务可并行且边界清晰时才拆分。
 - 若编码、修复、重构或评审，按项目适用的编码准则执行，保持最小改动并完成验证。
 - Flutter/Dart 开发、测试、布局、依赖、运行时错误场景优先检查并使用对应 Flutter/Dart skill。
+- 若 `.agent/config.json` 中 `enhancements.flutter_product_style` 为 `true`，Flutter 编码前必须读取并遵循 `docs/project/flutter-product-style.md`；其中标记为显式授权的保护机制不得默认启用。
 - Open Design 只能在用户明确要求使用 Open Design、设计稿、视觉稿或基于 Open Design 生成代码时调用；默认 UI 需求不得自动启用。
 - 若提交 Git，提交信息用中文，并包含问题/需求描述、修复/实现思路或复现路径。常用前缀：`feat:`、`fix:`、`optimize:`、`docs:`、`chore:`。
 
